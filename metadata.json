@@ -1,0 +1,6 @@
+{
+  "name": "macOS CBZ Comic Reader",
+  "description": "A native macOS-inspired high-performance CBZ comic reader with double-page spread, manga RTL mode, lazy image caching, keyboard shortcuts, and archive tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
