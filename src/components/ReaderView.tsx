@@ -21,12 +21,15 @@ interface ReaderViewProps {
   currentPageIndex: number;
   onPageChange: (newIndex: number) => void;
   onOpenFile: () => void;
+  onOpenFolder?: () => void;
   isLoadingComic: boolean;
   isControlsVisible?: boolean;
   onToggleControls?: () => void;
   onTriggerActivity?: () => void;
   onHoverControlsChange?: (hovering: boolean) => void;
   onLoadNextComic?: () => void;
+  nextComicTitle?: string;
+  hasNextComic?: boolean;
 }
 
 export const ReaderView: React.FC<ReaderViewProps> = ({
@@ -36,12 +39,15 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   currentPageIndex,
   onPageChange,
   onOpenFile,
+  onOpenFolder,
   isLoadingComic,
   isControlsVisible = true,
   onToggleControls,
   onTriggerActivity,
   onHoverControlsChange,
   onLoadNextComic,
+  nextComicTitle,
+  hasNextComic = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const webtoonScrollRef = useRef<HTMLDivElement>(null);
@@ -84,7 +90,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const [autoNextCountdown, setAutoNextCountdown] = useState<number>(4);
 
   useEffect(() => {
-    if (isEndReached && settings.autoNextComic && onLoadNextComic) {
+    if (isEndReached && settings.autoNextComic && onLoadNextComic && hasNextComic) {
       setAutoNextCountdown(4);
       const interval = setInterval(() => {
         setAutoNextCountdown((prev) => {
@@ -101,7 +107,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     } else {
       setAutoNextCountdown(4);
     }
-  }, [isEndReached, settings.autoNextComic, currentComic?.id, onLoadNextComic]);
+  }, [isEndReached, settings.autoNextComic, currentComic?.id, onLoadNextComic, hasNextComic]);
 
   // Initialize LRU Image Cache
   const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity));
@@ -334,16 +340,26 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               Drop a CBZ or ZIP Comic File
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Open any comic archive (.cbz, .zip) or select from the sample comics in the sidebar.
+              Open any comic archive (.cbz, .zip) or select an entire folder. All upcoming episodes in the directory will automatically load for continuous reading.
             </p>
           </div>
 
-          <button
-            onClick={onOpenFile}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-xl transition-all"
-          >
-            Open File (Cmd+O)
-          </button>
+          <div className="flex items-center justify-center space-x-3 pt-1">
+            <button
+              onClick={onOpenFile}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-xl transition-all"
+            >
+              Open File (Cmd+O)
+            </button>
+            {onOpenFolder && (
+              <button
+                onClick={onOpenFolder}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-all"
+              >
+                Open Folder
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -420,44 +436,53 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                   <h3 className="text-slate-100 font-bold text-base">
                     Finished {currentComic.title}
                   </h3>
-                  <p className="text-slate-400 text-xs">
-                    Like a video playlist, the next chapter in your library will load continuously.
-                  </p>
 
-                  {settings.autoNextComic && autoNextCountdown > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
-                          style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-emerald-300 font-mono font-medium">
-                        Loading next chapter in {autoNextCountdown}s...
+                  {hasNextComic ? (
+                    <>
+                      <p className="text-slate-300 text-xs font-medium">
+                        Up Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
                       </p>
-                    </div>
-                  ) : null}
 
-                  <div className="flex items-center justify-center space-x-2 pt-1">
-                    <button
-                      onClick={() => {
-                        if (onLoadNextComic) onLoadNextComic();
-                      }}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5"
-                    >
-                      <Play size={14} />
-                      <span>Read Next Chapter Now</span>
-                    </button>
+                      {settings.autoNextComic && autoNextCountdown > 0 ? (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
+                              style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-emerald-300 font-mono font-medium">
+                            Loading next chapter in {autoNextCountdown}s...
+                          </p>
+                        </div>
+                      ) : null}
 
-                    {settings.autoNextComic && autoNextCountdown > 0 && (
-                      <button
-                        onClick={() => setAutoNextCountdown(0)}
-                        className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all border border-slate-700"
-                      >
-                        Pause Auto-Play
-                      </button>
-                    )}
-                  </div>
+                      <div className="flex items-center justify-center space-x-2 pt-1">
+                        <button
+                          onClick={() => {
+                            if (onLoadNextComic) onLoadNextComic();
+                          }}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5"
+                        >
+                          <Play size={14} />
+                          <span>Read Next Chapter Now</span>
+                        </button>
+
+                        {settings.autoNextComic && autoNextCountdown > 0 && (
+                          <button
+                            onClick={() => setAutoNextCountdown(0)}
+                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all border border-slate-700"
+                          >
+                            Pause Auto-Play
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-slate-400 text-xs py-2">
+                      🎉 You have completed all episodes in this directory folder!
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -513,40 +538,52 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                   Finished {currentComic.title}
                 </h3>
 
-                {settings.autoNextComic && autoNextCountdown > 0 ? (
-                  <div className="space-y-1">
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
-                        style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-emerald-300 font-mono font-medium">
-                      Loading next chapter in {autoNextCountdown}s...
+                {hasNextComic ? (
+                  <>
+                    <p className="text-slate-300 text-xs font-medium">
+                      Up Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
                     </p>
-                  </div>
-                ) : null}
 
-                <div className="flex items-center justify-center space-x-2 pt-1">
-                  <button
-                    onClick={() => {
-                      if (onLoadNextComic) onLoadNextComic();
-                    }}
-                    className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5"
-                  >
-                    <Play size={14} />
-                    <span>Read Next Chapter Now</span>
-                  </button>
+                    {settings.autoNextComic && autoNextCountdown > 0 ? (
+                      <div className="space-y-1">
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
+                            style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-emerald-300 font-mono font-medium">
+                          Loading next chapter in {autoNextCountdown}s...
+                        </p>
+                      </div>
+                    ) : null}
 
-                  {settings.autoNextComic && autoNextCountdown > 0 && (
-                    <button
-                      onClick={() => setAutoNextCountdown(0)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs border border-slate-700"
-                    >
-                      Pause
-                    </button>
-                  )}
-                </div>
+                    <div className="flex items-center justify-center space-x-2 pt-1">
+                      <button
+                        onClick={() => {
+                          if (onLoadNextComic) onLoadNextComic();
+                        }}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5"
+                      >
+                        <Play size={14} />
+                        <span>Read Next Chapter Now</span>
+                      </button>
+
+                      {settings.autoNextComic && autoNextCountdown > 0 && (
+                        <button
+                          onClick={() => setAutoNextCountdown(0)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs border border-slate-700"
+                        >
+                          Pause
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-slate-400 text-xs py-1">
+                    🎉 You have completed all episodes in this directory folder!
+                  </p>
+                )}
               </div>
             )}
           </div>

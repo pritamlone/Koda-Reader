@@ -16,6 +16,8 @@ import {
   Rows,
   Eye,
   EyeOff,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import { ReaderSettings, ReadingDirection, ReaderLayoutMode, SpreadMode, WebtoonWidth } from '../types/comic';
 
@@ -25,6 +27,7 @@ interface MacToolbarProps {
   settings: ReaderSettings;
   onUpdateSettings: (newSettings: Partial<ReaderSettings>) => void;
   onOpenFile: () => void;
+  onOpenFolder?: () => void;
   onToggleSidebar: () => void;
   onOpenPackager: () => void;
   onOpenTests: () => void;
@@ -35,6 +38,10 @@ interface MacToolbarProps {
   onToggleFullscreen: () => void;
   isControlsVisible?: boolean;
   onToggleControlsVisible?: () => void;
+  hasPrevComic?: boolean;
+  hasNextComic?: boolean;
+  onPrevComic?: () => void;
+  onNextComic?: () => void;
 }
 
 export const MacToolbar: React.FC<MacToolbarProps> = ({
@@ -43,6 +50,7 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
   settings,
   onUpdateSettings,
   onOpenFile,
+  onOpenFolder,
   onToggleSidebar,
   onOpenPackager,
   onOpenTests,
@@ -51,6 +59,10 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
   sidebarOpen,
   isFullscreen,
   onToggleFullscreen,
+  hasPrevComic,
+  hasNextComic,
+  onPrevComic,
+  onNextComic,
 }) => {
   const activeSpreadMode: SpreadMode =
     settings.spreadMode || (settings.doublePageSpread ? 'spread' : settings.autoSpreadOnWideScreen ? 'auto' : 'single');
@@ -103,15 +115,47 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
         </button>
       </div>
 
-      {/* Middle: Title Bar */}
-      <div className="flex flex-col items-center justify-center text-center max-w-md px-2 truncate">
-        <span className="text-xs font-semibold tracking-wide text-slate-100 truncate">
-          {title}
-        </span>
-        {subTitle && (
-          <span className="text-[10px] text-slate-400 truncate -mt-0.5">
-            {subTitle}
+      {/* Middle: Title Bar & Series Episode Navigation */}
+      <div className="flex items-center space-x-2 max-w-md px-2">
+        {onPrevComic && (
+          <button
+            onClick={onPrevComic}
+            disabled={!hasPrevComic}
+            className={`p-1 rounded-md transition-all ${
+              hasPrevComic
+                ? 'text-slate-300 hover:text-white hover:bg-white/10'
+                : 'text-slate-600 opacity-40 cursor-not-allowed'
+            }`}
+            title={hasPrevComic ? 'Read Previous Episode in Folder' : 'No Previous Episode'}
+          >
+            <SkipBack size={15} />
+          </button>
+        )}
+
+        <div className="flex flex-col items-center justify-center text-center truncate">
+          <span className="text-xs font-semibold tracking-wide text-slate-100 truncate">
+            {title}
           </span>
+          {subTitle && (
+            <span className="text-[10px] text-slate-400 truncate -mt-0.5">
+              {subTitle}
+            </span>
+          )}
+        </div>
+
+        {onNextComic && (
+          <button
+            onClick={onNextComic}
+            disabled={!hasNextComic}
+            className={`p-1 rounded-md transition-all ${
+              hasNextComic
+                ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20'
+                : 'text-slate-600 opacity-40 cursor-not-allowed'
+            }`}
+            title={hasNextComic ? 'Read Next Episode in Folder' : 'End of Series in Folder'}
+          >
+            <SkipForward size={15} />
+          </button>
         )}
       </div>
 

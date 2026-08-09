@@ -13,7 +13,11 @@ import { TestRunnerModal } from './components/TestRunnerModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PreferencesModal } from './components/PreferencesModal';
 import { CBZParser } from './utils/cbzParser';
-import { generateSampleCBZ } from './utils/sampleComicGenerator';
+import {
+  DirectoryComicItem,
+  scanDirectoryForComics,
+  loadDirectoryItemBuffer,
+} from './utils/directoryReader';
 
 const STORAGE_SETTINGS_KEY = 'cbz_reader_settings_v1';
 const STORAGE_RECENTS_KEY = 'cbz_reader_recents_v1';
@@ -42,7 +46,10 @@ export default function App() {
   const [zipInstance, setZipInstance] = useState<JSZip | null>(null);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [isLoadingComic, setIsLoadingComic] = useState<boolean>(false);
-  const [isGeneratingSample, setIsGeneratingSample] = useState<boolean>(false);
+
+  // Directory Series Playlist State (Continuous Reading across directory)
+  const [directoryItems, setDirectoryItems] = useState<DirectoryComicItem[]>([]);
+  const [activeDirectoryIndex, setActiveDirectoryIndex] = useState<number>(-1);
 
   // Auto-hide UI State (Zen Mode for uninterrupted reading)
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(true);
@@ -136,7 +143,7 @@ export default function App() {
     });
   };
 
-  // Load a CBZ file or ArrayBuffer into state
+  // Parse and set a comic from an ArrayBuffer or File
   const loadComicBuffer = async (
     buffer: File | ArrayBuffer,
     fileName: string,
@@ -166,32 +173,60 @@ export default function App() {
     }
   };
 
-  // Load Built-in Sample Comic Preset
-  const handleLoadSample = async (presetId: string) => {
-    setIsGeneratingSample(true);
-    try {
-      const blob = await generateSampleCBZ(presetId);
-      const fileName = `${presetId}.cbz`;
-      const arrayBuffer = await blob.arrayBuffer();
-      await loadComicBuffer(arrayBuffer, fileName, 0);
-    } catch (err: any) {
-      alert(`Sample generation failed: ${err?.message || err}`);
-    } finally {
-      setIsGeneratingSample(false);
+  // Select a specific episode item from the directory playlist
+  const handleSelectDirectoryItem = useCallback(
+    async (item: DirectoryComicItem, index: number) => {
+      try {
+        setIsLoadingComic(true);
+        const { buffer, fileName } = await loadDirectoryItemBuffer(item);
+        setActiveDirectoryIndex(index);
+        await loadComicBuffer(buffer, fileName, 0);
+      } catch (err: any) {
+        alert(`Failed to load directory episode: ${err?.message || err}`);
+      } finally {
+        setIsLoadingComic(false);
+      }
+    },
+    []
+  );
+
+  // Load a batch of files or a single file and scan its directory
+  const handleOpenFilesOrFolder = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+
+    const scannedItems = scanDirectoryForComics(files);
+    setDirectoryItems(scannedItems);
+
+    if (scannedItems.length > 0) {
+      // Find the index of the primary file if present, else 0
+      let initialIdx = 0;
+      if (files instanceof FileList && files.length === 1) {
+        const targetName = files[0].name;
+        const found = scannedItems.findIndex((it) => it.fileName === targetName);
+        if (found !== -1) initialIdx = found;
+      }
+      await handleSelectDirectoryItem(scannedItems[initialIdx], initialIdx);
     }
   };
 
-  // Advance to Next Comic Issue (Continuous Series Reading)
+  // Advance to Next Comic Episode in Directory (Continuous Reading)
   const handleLoadNextComic = useCallback(async () => {
-    const currentFile = currentComic?.fileName || '';
-    if (currentFile.toLowerCase().includes('cyberpunk')) {
-      await handleLoadSample('cosmic_odyssey');
-    } else if (currentFile.toLowerCase().includes('cosmic')) {
-      await handleLoadSample('noir_detective');
-    } else {
-      await handleLoadSample('cyberpunk_tokyo');
+    if (
+      activeDirectoryIndex >= 0 &&
+      activeDirectoryIndex < directoryItems.length - 1
+    ) {
+      const nextIdx = activeDirectoryIndex + 1;
+      await handleSelectDirectoryItem(directoryItems[nextIdx], nextIdx);
     }
-  }, [currentComic]);
+  }, [activeDirectoryIndex, directoryItems, handleSelectDirectoryItem]);
+
+  // Jump back to Previous Comic Episode in Directory
+  const handleLoadPrevComic = useCallback(async () => {
+    if (activeDirectoryIndex > 0 && directoryItems.length > 0) {
+      const prevIdx = activeDirectoryIndex - 1;
+      await handleSelectDirectoryItem(directoryItems[prevIdx], prevIdx);
+    }
+  }, [activeDirectoryIndex, directoryItems, handleSelectDirectoryItem]);
 
   // Auto-hide controls timer (Zen mode for uninterrupted reading)
   const isHoveringControlsRef = useRef<boolean>(false);
@@ -241,15 +276,31 @@ export default function App() {
     };
   }, [settings.autoHideUI, isAnyModalOpen, currentComic?.id, startHideTimer]);
 
-  // File Picker
+  // Standard File Picker (Single or Multi-file)
   const handleOpenFilePicker = () => {
     const input = document.createElement('input');
     input.type = 'file';
+    input.multiple = true;
     input.accept = '.cbz,.zip,.cbr';
     input.onchange = async (e: Event) => {
       const files = (e.target as HTMLInputElement).files;
-      if (files && files[0]) {
-        await loadComicBuffer(files[0], files[0].name, 0);
+      if (files && files.length > 0) {
+        await handleOpenFilesOrFolder(files);
+      }
+    };
+    input.click();
+  };
+
+  // Folder Picker (Reads entire series folder)
+  const handleOpenFolderPicker = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    (input as any).webkitdirectory = true;
+    (input as any).directory = true;
+    input.onchange = async (e: Event) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files.length > 0) {
+        await handleOpenFilesOrFolder(files);
       }
     };
     input.click();
@@ -281,7 +332,6 @@ export default function App() {
   // Global Keyboard Navigation Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if inside an input or modal
       if (
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(
           (e.target as HTMLElement)?.tagName
@@ -351,17 +401,17 @@ export default function App() {
   // Global Window Drag & Drop Handler
   const handleWindowDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (
-        file.name.endsWith('.cbz') ||
-        file.name.endsWith('.zip') ||
-        file.name.endsWith('.cbr')
-      ) {
-        await loadComicBuffer(file, file.name, 0);
-      }
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleOpenFilesOrFolder(e.dataTransfer.files);
     }
   };
+
+  const hasNextComic =
+    activeDirectoryIndex >= 0 && activeDirectoryIndex < directoryItems.length - 1;
+  const hasPrevComic = activeDirectoryIndex > 0 && directoryItems.length > 0;
+  const nextComicTitle = hasNextComic
+    ? directoryItems[activeDirectoryIndex + 1].fileName
+    : undefined;
 
   return (
     <div
@@ -406,6 +456,7 @@ export default function App() {
           settings={settings}
           onUpdateSettings={handleUpdateSettings}
           onOpenFile={handleOpenFilePicker}
+          onOpenFolder={handleOpenFolderPicker}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           onOpenPackager={() => setPackagerOpen(true)}
           onOpenTests={() => setTestsOpen(true)}
@@ -416,6 +467,10 @@ export default function App() {
           onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
           isControlsVisible={isControlsVisible}
           onToggleControlsVisible={() => setIsControlsVisible((prev) => !prev)}
+          hasPrevComic={hasPrevComic}
+          hasNextComic={hasNextComic}
+          onPrevComic={handleLoadPrevComic}
+          onNextComic={handleLoadNextComic}
         />
       </div>
 
@@ -425,26 +480,28 @@ export default function App() {
           <Sidebar
             currentComic={currentComic}
             recentComics={recentComics}
+            directoryItems={directoryItems}
+            activeDirectoryIndex={activeDirectoryIndex}
+            onSelectDirectoryItem={handleSelectDirectoryItem}
             onSelectRecent={(item) => {
-              if (item.title.toLowerCase().includes('cyberpunk')) {
-                handleLoadSample('cyberpunk_tokyo');
-              } else if (item.title.toLowerCase().includes('cosmic')) {
-                handleLoadSample('cosmic_odyssey');
-              } else if (item.title.toLowerCase().includes('noir')) {
-                handleLoadSample('noir_detective');
+              // Try to find matching file in directory or prompt
+              const foundIdx = directoryItems.findIndex(
+                (it) => it.fileName === item.fileName
+              );
+              if (foundIdx !== -1) {
+                handleSelectDirectoryItem(directoryItems[foundIdx], foundIdx);
               } else {
-                handleLoadSample('cyberpunk_tokyo');
+                handleOpenFilePicker();
               }
             }}
             onClearRecent={() => {
               setRecentComics([]);
               localStorage.removeItem(STORAGE_RECENTS_KEY);
             }}
-            onLoadSample={handleLoadSample}
             onOpenFile={handleOpenFilePicker}
+            onOpenFolder={handleOpenFolderPicker}
             onOpenPackager={() => setPackagerOpen(true)}
             onOpenTests={() => setTestsOpen(true)}
-            isGeneratingSample={isGeneratingSample}
           />
         )}
 
@@ -455,6 +512,7 @@ export default function App() {
           currentPageIndex={currentPageIndex}
           onPageChange={handlePageChange}
           onOpenFile={handleOpenFilePicker}
+          onOpenFolder={handleOpenFolderPicker}
           isLoadingComic={isLoadingComic}
           isControlsVisible={isControlsVisible}
           onToggleControls={handleToggleControls}
@@ -466,6 +524,8 @@ export default function App() {
             }
           }}
           onLoadNextComic={handleLoadNextComic}
+          nextComicTitle={nextComicTitle}
+          hasNextComic={hasNextComic}
         />
       </div>
 

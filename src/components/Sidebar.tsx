@@ -2,41 +2,46 @@ import React from 'react';
 import {
   BookOpen,
   Clock,
-  Sparkles,
   Package,
   Activity,
   FileCheck,
   FolderOpen,
   Layers,
-  ChevronRight,
   HardDrive,
   Trash2,
+  FolderTree,
+  PlayCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { RecentComicItem, ComicBook } from '../types/comic';
-import { SAMPLE_PRESETS } from '../utils/sampleComicGenerator';
+import { DirectoryComicItem } from '../utils/directoryReader';
 
 interface SidebarProps {
   currentComic: ComicBook | null;
   recentComics: RecentComicItem[];
+  directoryItems: DirectoryComicItem[];
+  activeDirectoryIndex: number;
+  onSelectDirectoryItem: (item: DirectoryComicItem, index: number) => void;
   onSelectRecent: (item: RecentComicItem) => void;
   onClearRecent: () => void;
-  onLoadSample: (presetId: string) => void;
   onOpenFile: () => void;
+  onOpenFolder: () => void;
   onOpenPackager: () => void;
   onOpenTests: () => void;
-  isGeneratingSample: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentComic,
   recentComics,
+  directoryItems,
+  activeDirectoryIndex,
+  onSelectDirectoryItem,
   onSelectRecent,
   onClearRecent,
-  onLoadSample,
   onOpenFile,
+  onOpenFolder,
   onOpenPackager,
   onOpenTests,
-  isGeneratingSample,
 }) => {
   return (
     <aside className="w-72 bg-slate-900/95 border-r border-white/10 flex flex-col h-full shrink-0 select-none text-slate-300 z-20">
@@ -55,13 +60,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-6">
         {/* Quick Actions */}
         <div className="space-y-1.5">
-          <button
-            onClick={onOpenFile}
-            className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-medium text-xs transition-all"
-          >
-            <FolderOpen size={16} />
-            <span>Open CBZ File...</span>
-          </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={onOpenFile}
+              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-medium text-xs transition-all"
+              title="Open CBZ / ZIP Archive"
+            >
+              <FolderOpen size={15} />
+              <span className="truncate">Open File</span>
+            </button>
+
+            <button
+              onClick={onOpenFolder}
+              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition-all"
+              title="Open Entire Series Directory Folder"
+            >
+              <FolderTree size={15} />
+              <span className="truncate">Open Folder</span>
+            </button>
+          </div>
 
           <button
             onClick={onOpenPackager}
@@ -72,39 +89,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Built-in Sample Comics (1-Click Test Presets) */}
+        {/* Directory Series / Continuous Playlist */}
         <div className="space-y-2">
-          <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
-            <Sparkles size={14} className="text-yellow-400" />
-            <span>Sample Comics Presets</span>
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
+            <div className="flex items-center space-x-1.5">
+              <FolderTree size={14} className="text-emerald-400" />
+              <span>Folder Playlist</span>
+            </div>
+            {directoryItems.length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                {directoryItems.length} {directoryItems.length === 1 ? 'file' : 'files'}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-1.5">
-            {SAMPLE_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                disabled={isGeneratingSample}
-                onClick={() => onLoadSample(preset.id)}
-                className="w-full text-left p-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition-all group"
-              >
-                <div className="flex items-start justify-between">
-                  <span className="text-xs font-semibold text-slate-200 group-hover:text-blue-300 line-clamp-1">
-                    {preset.title}
-                  </span>
-                  <ChevronRight
-                    size={14}
-                    className="text-slate-500 group-hover:text-blue-400 transition-transform group-hover:translate-x-0.5"
-                  />
-                </div>
-                <div className="flex items-center space-x-2 mt-1 text-[10px] text-slate-400">
-                  <span className="px-1.5 py-0.5 rounded bg-slate-700/70 text-slate-300">
-                    {preset.genre}
-                  </span>
-                  <span>{preset.pageCount} Pages</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {directoryItems.length === 0 ? (
+            <div className="p-3 text-center border border-dashed border-slate-800 rounded-lg text-slate-500 text-xs leading-relaxed">
+              Open a CBZ file or folder to automatically load and read all series episodes continuously.
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+              {directoryItems.map((item, idx) => {
+                const isActive = idx === activeDirectoryIndex;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onSelectDirectoryItem(item, idx)}
+                    className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center justify-between group ${
+                      isActive
+                        ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 font-medium'
+                        : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 truncate pr-1">
+                      {isActive ? (
+                        <PlayCircle size={14} className="shrink-0 text-emerald-400 animate-pulse" />
+                      ) : (
+                        <span className="text-[10px] font-mono shrink-0 w-4 text-slate-500 group-hover:text-slate-300">
+                          {idx + 1}.
+                        </span>
+                      )}
+                      <span className="truncate text-xs">{item.fileName}</span>
+                    </div>
+                    {isActive && (
+                      <CheckCircle2 size={13} className="shrink-0 text-emerald-400 ml-1" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Recent Reading History */}
@@ -186,3 +220,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
+
