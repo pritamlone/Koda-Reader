@@ -20,7 +20,10 @@ function createWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    mainWindow.loadFile(indexPath).catch(err => {
+      console.error('Failed to load file:', err);
+    });
   }
 }
 

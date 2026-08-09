@@ -1,5 +1,8 @@
 {
   "name": "react-example",
+  "productName": "macOS CBZ Comic Reader",
+  "description": "Native macOS Comic & Manga Reader with AI Translation",
+  "author": "Pritam Lone",
   "private": true,
   "version": "0.0.0",
   "type": "module",
