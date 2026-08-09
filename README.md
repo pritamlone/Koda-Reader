@@ -1,4 +1,5 @@
-<img width="2048" height="2048" alt="icon" src="https://github.com/user-attachments/assets/edf1758b-f533-478c-a685-99343d6bbf3e" />
+<img width="320" height="320" alt="0 icon Medium Small" src="https://github.com/user-attachments/assets/809911e5-a977-4557-b9cd-84c52b2e8e72" />
+
 
 # macOS CBZ Comic Reader 📚
 
