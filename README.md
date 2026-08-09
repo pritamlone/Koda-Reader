@@ -1,3 +1,5 @@
+<img width="2048" height="2048" alt="icon" src="https://github.com/user-attachments/assets/edf1758b-f533-478c-a685-99343d6bbf3e" />
+
 # macOS CBZ Comic Reader 📚
 
 A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **React, TypeScript, Tailwind CSS, Vite, and Electron**, tailored specifically for macOS.
@@ -125,7 +127,17 @@ rm -rf icon.iconset
 - **Icons**: Lucide React
 
 ---
+## Preview
 
+<img width="320" height="200" alt="1 2026-08-09_9 14 19 PM Medium" src="https://github.com/user-attachments/assets/a9d1e149-9340-4684-ab95-4f66e55d7374" />
+<img width="320" height="210" alt="2 2026-08-09_9 13 10 PM Medium" src="https://github.com/user-attachments/assets/d0b6daf3-51f2-4969-9cc0-29cb9b56e2e3" />
+<img width="320" height="210" alt="3 2026-08-09_9 13 21 PM Medium" src="https://github.com/user-attachments/assets/44814ddf-d23c-43de-ba52-678b3e8f57dc" />
+<img width="320" height="200" alt="4 2026-08-09_9 13 45 PM Medium" src="https://github.com/user-attachments/assets/e13fe66c-c029-48c6-b585-5751153c9b61" />
+<img width="320" height="200" alt="5 2026-08-09_9 15 15 PM Medium" src="https://github.com/user-attachments/assets/ef3f1662-df9c-402c-8f07-57e2d367efda" />
+<img width="320" height="200" alt="6 2026-08-09_9 15 05 PM Medium" src="https://github.com/user-attachments/assets/d9f6af45-ee75-4165-a745-fc80a79eec46" />
+
+
+---
 ## 📄 License
 
 MIT License. Open source and free to use.
