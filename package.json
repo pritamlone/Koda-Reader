@@ -1,7 +1,7 @@
 {
   "name": "react-example",
-  "productName": "macOS CBZ Comic Reader",
-  "description": "Native macOS Comic & Manga Reader with AI Translation",
+  "productName": "Koda Reader",
+  "description": "Koda Reader - Native macOS CBZ & Zip Comic Reader",
   "author": "Pritam Lone",
   "private": true,
   "version": "0.0.0",
@@ -17,8 +17,8 @@
     "electron:build": "vite build && electron-builder"
   },
   "build": {
-    "appId": "com.cbzreader.mac",
-    "productName": "macOS CBZ Comic Reader",
+    "appId": "com.kodareader.mac",
+    "productName": "Koda Reader",
     "directories": {
       "output": "dist_electron",
       "buildResources": "build"

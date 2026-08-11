@@ -474,7 +474,7 @@ export default function App() {
         }`}
       >
         <MacToolbar
-          title={currentComic?.title || 'macOS Native CBZ Reader'}
+          title={currentComic?.title || 'Koda Reader'}
           subTitle={
             currentComic
               ? `${

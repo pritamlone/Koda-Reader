@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <BookOpen size={16} />
           </div>
           <span className="font-bold text-sm text-white tracking-wide">
-            CBZ Reader Studio
+            Koda Reader
           </span>
         </div>
       </div>

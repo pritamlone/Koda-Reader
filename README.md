@@ -1,8 +1,8 @@
-# macOS CBZ Comic Reader 📚
+# Koda Reader 📚
 
 A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **React, TypeScript, Tailwind CSS, Vite, and Electron**, tailored specifically for macOS.
 
-![macOS CBZ Reader Banner](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/book-open.svg)
+![Koda Reader Banner](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/book-open.svg)
 
 ---
 
@@ -60,8 +60,8 @@ npm run electron:build
 ```
 
 The output installers and binaries will be generated inside the `dist_electron/` directory:
-- `dist_electron/macOS CBZ Comic Reader-0.0.0-arm64.dmg`
-- `dist_electron/macOS CBZ Comic Reader-0.0.0-arm64-mac.zip`
+- `dist_electron/Koda Reader-0.0.0-arm64.dmg`
+- `dist_electron/Koda Reader-0.0.0-arm64-mac.zip`
 
 ---
 

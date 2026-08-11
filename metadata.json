@@ -1,6 +1,6 @@
 {
-  "name": "macOS CBZ Comic Reader",
-  "description": "A native macOS-inspired high-performance CBZ comic reader with double-page spread, manga RTL mode, lazy image caching, keyboard shortcuts, and archive tools.",
+  "name": "Koda Reader",
+  "description": "Koda Reader - A sleek, high-performance macOS CBZ & ZIP comic and manga reader with webtoon mode, dual-page spread, and continuous chapter reading.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
