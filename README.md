@@ -60,8 +60,26 @@ npm run electron:build
 ```
 
 The output installers and binaries will be generated inside the `dist_electron/` directory:
-- `dist_electron/Koda Reader-0.0.0-arm64.dmg`
-- `dist_electron/Koda Reader-0.0.0-arm64-mac.zip`
+- `dist_electron/Koda Reader-1.0.0-arm64.dmg`
+- `dist_electron/Koda Reader-1.0.0-arm64-mac.zip`
+
+---
+
+## 🏷️ Releases & Version History
+
+### 🚀 **v1.0.0 (Koda Reader Official Release)**
+- 🏷️ **Official Name & Branding**: Rebranded application to **Koda Reader** (`koda-reader`).
+- ⚡ **Stream-Based Memory Architecture**:
+  - Implemented lightweight metadata directory indexing (video player style streaming).
+  - Reduced RAM consumption by eliminating duplicate archive buffers and unzipping files directly on-demand.
+  - Automatic Garbage Collection (GC) for revoked image URLs and memory buffers.
+- 📖 **Continuous Chapter Reading (Mihon/Tachiyomi Style)**:
+  - Eliminated delay countdown timers for continuous, instant chapter transitions.
+  - Added floating chapter toast notifications (`Chapter X of Y : Title`).
+  - Added top/bottom chapter quick-switch banners in Webtoon scroll view.
+- 🎨 **Layout & Performance Enhancements**:
+  - Webtoon mode, double-page spread with optional cover page isolation, RTL/LTR manga direction toggling.
+  - Native macOS toolbar integration with shortcuts and Zen mode auto-hide UI.
 
 ---
 
