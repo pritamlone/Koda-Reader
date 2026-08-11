@@ -18,6 +18,7 @@ import {
   EyeOff,
   SkipBack,
   SkipForward,
+  XCircle,
 } from 'lucide-react';
 import { ReaderSettings, ReadingDirection, ReaderLayoutMode, SpreadMode, WebtoonWidth } from '../types/comic';
 
@@ -28,6 +29,7 @@ interface MacToolbarProps {
   onUpdateSettings: (newSettings: Partial<ReaderSettings>) => void;
   onOpenFile: () => void;
   onOpenFolder?: () => void;
+  onCloseComic?: () => void;
   onToggleSidebar: () => void;
   onOpenPackager: () => void;
   onOpenTests: () => void;
@@ -42,6 +44,7 @@ interface MacToolbarProps {
   hasNextComic?: boolean;
   onPrevComic?: () => void;
   onNextComic?: () => void;
+  isComicLoaded?: boolean;
 }
 
 export const MacToolbar: React.FC<MacToolbarProps> = ({
@@ -51,6 +54,7 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
   onUpdateSettings,
   onOpenFile,
   onOpenFolder,
+  onCloseComic,
   onToggleSidebar,
   onOpenPackager,
   onOpenTests,
@@ -63,6 +67,7 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
   hasNextComic,
   onPrevComic,
   onNextComic,
+  isComicLoaded,
 }) => {
   const activeSpreadMode: SpreadMode =
     settings.spreadMode || (settings.doublePageSpread ? 'spread' : settings.autoSpreadOnWideScreen ? 'auto' : 'single');
@@ -73,8 +78,8 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
       <div className="flex items-center space-x-3">
         <div className="flex items-center space-x-2 group pr-1">
           <button
-            onClick={onToggleFullscreen}
-            title="Close / Toggle Fullscreen"
+            onClick={isComicLoaded && onCloseComic ? onCloseComic : onToggleFullscreen}
+            title={isComicLoaded ? 'Close Active Comic (Cmd+W or Esc)' : 'Close Window'}
             className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center text-[8px] text-red-950 font-bold opacity-90 group-hover:opacity-100"
           >
             ✕
@@ -113,6 +118,17 @@ export const MacToolbar: React.FC<MacToolbarProps> = ({
           <FolderOpen size={14} />
           <span>Open CBZ</span>
         </button>
+
+        {isComicLoaded && onCloseComic && (
+          <button
+            onClick={onCloseComic}
+            className="flex items-center space-x-1 px-2 py-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-medium transition-all"
+            title="Close Active Chapter / Comic (Cmd+W or Esc)"
+          >
+            <XCircle size={14} />
+            <span className="hidden sm:inline">Close Chapter</span>
+          </button>
+        )}
       </div>
 
       {/* Middle: Title Bar & Series Episode Navigation */}

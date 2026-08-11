@@ -18,6 +18,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
     { key: 'Spacebar', desc: 'Advance 1 Page' },
     { key: 'Home / End', desc: 'Jump to First / Last Page' },
     { key: 'Cmd + O', desc: 'Open CBZ or ZIP File' },
+    { key: 'Cmd + W / Esc', desc: 'Close Current Chapter / Comic' },
     { key: 'Cmd + \\', desc: 'Toggle Sidebar' },
     { key: 'M', desc: 'Toggle Manga Mode (RTL vs LTR)' },
     { key: 'S', desc: 'Toggle Two-Page Spread Mode' },

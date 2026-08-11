@@ -92,73 +92,78 @@ export function scanDirectoryForComics(
 ): DirectoryComicItem[] {
   const node = getNodeModules();
 
-  // Multi-file selection or folder upload in Web / Electron
-  if (Array.isArray(fileOrFiles) || fileOrFiles instanceof FileList) {
-    const filesArray = Array.from(fileOrFiles).filter((f) =>
-      /\.(cbz|zip|cbr)$/i.test(f.name)
-    );
+  let firstFilePath: string | undefined;
+  let singleMatchingFile: File | undefined;
 
-    // Sort using Mihon Natural Chapter Comparator
-    filesArray.sort((a, b) => compareMihonChapters(a.name, b.name));
-
-    return filesArray.map((file) => {
-      const chapterInfo = parseChapterInfo(file.name);
-      return {
-        id: (file as any).path || file.name,
-        fileName: file.name,
-        filePath: (file as any).path,
-        file,
-        parsedBadge: chapterInfo.formattedBadge,
-        chapterNumber: chapterInfo.chapterNumber,
-        volumeNumber: chapterInfo.volumeNumber,
-      };
-    });
+  if (fileOrFiles instanceof File) {
+    firstFilePath = (fileOrFiles as any).path;
+    singleMatchingFile = fileOrFiles;
+  } else if ((Array.isArray(fileOrFiles) || fileOrFiles instanceof FileList) && fileOrFiles.length > 0) {
+    firstFilePath = (fileOrFiles[0] as any).path;
+    if (fileOrFiles.length === 1) {
+      singleMatchingFile = fileOrFiles[0];
+    }
   }
 
-  const singleFile = fileOrFiles as File;
-  const filePath = (singleFile as any).path;
-
   // Electron environment: IINA-style parent directory auto-discovery
-  // Automatically scans the entire folder containing this opened CBZ file!
-  if (node && filePath) {
+  // Whenever a disk file path is available, scan the ENTIRE parent folder for all series CBZ files!
+  if (node && firstFilePath) {
     try {
-      const dir = node.path.dirname(filePath);
+      const dir = node.path.dirname(firstFilePath);
       const filesInDir: string[] = node.fs.readdirSync(dir);
       const cbzNames = filesInDir
         .filter((name) => /\.(cbz|zip|cbr)$/i.test(name))
         .sort((a, b) => compareMihonChapters(a, b));
 
-      return cbzNames.map((fileName) => {
-        const fullPath = node.path.join(dir, fileName);
-        const chapterInfo = parseChapterInfo(fileName);
-        return {
-          id: fullPath,
-          fileName,
-          filePath: fullPath,
-          file: fileName === singleFile.name ? singleFile : undefined,
-          parsedBadge: chapterInfo.formattedBadge,
-          chapterNumber: chapterInfo.chapterNumber,
-          volumeNumber: chapterInfo.volumeNumber,
-        };
-      });
+      if (cbzNames.length > 0) {
+        return cbzNames.map((fileName) => {
+          const fullPath = node.path.join(dir, fileName);
+          const chapterInfo = parseChapterInfo(fileName);
+          let matchFile: File | undefined;
+          if (singleMatchingFile && singleMatchingFile.name === fileName) {
+            matchFile = singleMatchingFile;
+          } else if (Array.isArray(fileOrFiles) || fileOrFiles instanceof FileList) {
+            matchFile = Array.from(fileOrFiles as any).find((f: any) => f.name === fileName) as File;
+          }
+
+          return {
+            id: fullPath,
+            fileName,
+            filePath: fullPath,
+            file: matchFile,
+            parsedBadge: chapterInfo.formattedBadge,
+            chapterNumber: chapterInfo.chapterNumber,
+            volumeNumber: chapterInfo.volumeNumber,
+          };
+        });
+      }
     } catch (err) {
       console.warn('Failed to read parent directory via Node fs:', err);
     }
   }
 
-  // Single file fallback in web browser
-  const singleChapterInfo = parseChapterInfo(singleFile.name);
-  return [
-    {
-      id: filePath || singleFile.name,
-      fileName: singleFile.name,
-      filePath,
-      file: singleFile,
-      parsedBadge: singleChapterInfo.formattedBadge,
-      chapterNumber: singleChapterInfo.chapterNumber,
-      volumeNumber: singleChapterInfo.volumeNumber,
-    },
-  ];
+  // Web Browser environment fallback: Multi-file selection or folder drop
+  const filesArray = (
+    fileOrFiles instanceof File
+      ? [fileOrFiles]
+      : Array.from(fileOrFiles as any)
+  ).filter((f: any) => /\.(cbz|zip|cbr)$/i.test(f.name)) as File[];
+
+  // Sort using Mihon Natural Chapter Comparator
+  filesArray.sort((a, b) => compareMihonChapters(a.name, b.name));
+
+  return filesArray.map((file) => {
+    const chapterInfo = parseChapterInfo(file.name);
+    return {
+      id: (file as any).path || file.name,
+      fileName: file.name,
+      filePath: (file as any).path,
+      file,
+      parsedBadge: chapterInfo.formattedBadge,
+      chapterNumber: chapterInfo.chapterNumber,
+      volumeNumber: chapterInfo.volumeNumber,
+    };
+  });
 }
 
 /**

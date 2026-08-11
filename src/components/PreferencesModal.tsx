@@ -98,22 +98,44 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           {/* Webtoon Container Width Scrollbar (Webtoon Mode) */}
           {settings.layoutMode === 'webtoon' && (() => {
             const isFullWidth = settings.webtoonWidth === '100%';
-            const numericPx = isFullWidth ? 1400 : parseInt(settings.webtoonWidth || '760', 10) || 760;
+            const numericPx = isFullWidth ? 1400 : parseInt(settings.webtoonWidth || '500', 10) || 500;
 
             return (
               <div className="space-y-2.5 bg-slate-900/60 p-3 rounded-2xl border border-slate-700/80">
                 <div className="flex items-center justify-between font-semibold text-slate-200 text-xs">
                   <span className="flex items-center space-x-1.5">
                     <Maximize size={14} className="text-emerald-400" />
-                    <span>Webtoon Strip Width Scrollbar</span>
+                    <span>Webtoon Strip Width</span>
                   </span>
                   <span className="text-emerald-400 font-mono font-bold text-xs">
                     {isFullWidth || numericPx >= 1380 ? '100% (Full Width)' : `${numericPx} px`}
                   </span>
                 </div>
 
+                {/* Preset Width Buttons */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { label: '500px (Default)', val: '500px' },
+                    { label: '680px', val: '680px' },
+                    { label: '900px', val: '900px' },
+                    { label: 'Full', val: '100%' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      onClick={() => onUpdateSettings({ webtoonWidth: preset.val })}
+                      className={`py-1 px-1.5 rounded-lg text-[10px] font-mono font-bold border transition-all ${
+                        settings.webtoonWidth === preset.val || (preset.val === '500px' && (!settings.webtoonWidth || settings.webtoonWidth === '500px'))
+                          ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/50'
+                          : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Refined Interactive Range Scrollbar */}
-                <div className="space-y-1">
+                <div className="space-y-1 pt-1">
                   <input
                     type="range"
                     min={380}
@@ -128,9 +150,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-mono px-0.5">
                     <span>380px</span>
-                    <span>680px</span>
-                    <span>950px</span>
-                    <span>1200px</span>
+                    <span>500px (Def)</span>
+                    <span>800px</span>
+                    <span>1100px</span>
                     <span>Full Width</span>
                   </div>
                 </div>

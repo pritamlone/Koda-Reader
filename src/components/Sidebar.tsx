@@ -30,6 +30,7 @@ interface SidebarProps {
   onClearRecent: () => void;
   onOpenFile: () => void;
   onOpenFolder: () => void;
+  onCloseComic?: () => void;
   onOpenPackager: () => void;
   onOpenTests: () => void;
 }
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClearRecent,
   onOpenFile,
   onOpenFolder,
+  onCloseComic,
   onOpenPackager,
   onOpenTests,
 }) => {
@@ -113,6 +115,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
 
+          {currentComic && onCloseComic && (
+            <button
+              onClick={onCloseComic}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-semibold transition-all shadow-sm"
+              title="Close current manga / chapter"
+            >
+              <Trash2 size={14} className="text-red-400" />
+              <span>Close Active Chapter</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenPackager}
             className="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 text-xs transition-all"
@@ -169,36 +182,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </p>
             </div>
           ) : directoryItems.length === 1 ? (
-            <div className="space-y-2">
-              <div className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/80 text-xs">
-                <div className="flex items-center space-x-2 text-emerald-400 font-medium">
-                  <PlayCircle size={14} />
-                  <span className="truncate">{directoryItems[0].fileName}</span>
-                </div>
-                {directoryItems[0].parsedBadge && (
-                  <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60">
-                    {directoryItems[0].parsedBadge}
-                  </span>
-                )}
+            <div className="p-2 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-xs flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-emerald-300 font-medium truncate pr-1">
+                <PlayCircle size={14} className="shrink-0 text-emerald-400" />
+                <span className="truncate">{directoryItems[0].fileName}</span>
               </div>
-
-              {/* IINA Folder Auto-Discovery Helper */}
-              <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-800/40 text-[11px] text-indigo-200 space-y-2">
-                <div className="flex items-center space-x-1.5 font-semibold text-indigo-300">
-                  <FolderTree size={14} />
-                  <span>Read Entire Manhua Series?</span>
-                </div>
-                <p className="text-indigo-300/80 leading-normal">
-                  Select your manhua folder to automatically index all episodes continuously (IINA Style).
-                </p>
-                <button
-                  onClick={onOpenFolder}
-                  className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-md flex items-center justify-center space-x-1.5"
-                >
-                  <FolderOpen size={13} />
-                  <span>Open Series Folder</span>
-                </button>
-              </div>
+              {directoryItems[0].parsedBadge && (
+                <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                  {directoryItems[0].parsedBadge}
+                </span>
+              )}
             </div>
           ) : (
             <div className="space-y-1 max-h-64 overflow-y-auto pr-1">

@@ -110,6 +110,42 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       : currentPageIndex >= currentComic.totalPages - 1
     : false;
 
+  // Auto-advance to next chapter seamlessly without asking for clicks
+  const hasAutoLoadedNextRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      isWebtoon &&
+      isWebtoonEndVisible &&
+      hasNextComic &&
+      onLoadNextComic &&
+      hasAutoLoadedNextRef.current !== currentComic?.id
+    ) {
+      hasAutoLoadedNextRef.current = currentComic?.id || null;
+      const timer = setTimeout(() => {
+        onLoadNextComic();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [isWebtoon, isWebtoonEndVisible, hasNextComic, onLoadNextComic, currentComic?.id]);
+
+  useEffect(() => {
+    if (
+      !isWebtoon &&
+      isEndReached &&
+      hasNextComic &&
+      settings.autoNextComic &&
+      onLoadNextComic &&
+      hasAutoLoadedNextRef.current !== currentComic?.id
+    ) {
+      hasAutoLoadedNextRef.current = currentComic?.id || null;
+      const timer = setTimeout(() => {
+        onLoadNextComic();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isWebtoon, isEndReached, hasNextComic, settings.autoNextComic, onLoadNextComic, currentComic?.id]);
+
   // Initialize LRU Image Cache
   const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity));
   const [cachedUrls, setCachedUrls] = useState<Record<number, string>>({});
@@ -468,19 +504,10 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
                   {hasNextComic ? (
                     <div className="space-y-3 pt-1">
-                      <p className="text-slate-300 text-xs font-medium">
-                        Next Chapter: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
-                      </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onLoadNextComic) onLoadNextComic();
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-2"
-                      >
-                        <Play size={14} />
-                        <span>Read Next Chapter →</span>
-                      </button>
+                      <div className="flex items-center justify-center space-x-2 text-emerald-300 font-semibold text-xs animate-pulse">
+                        <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin shrink-0" />
+                        <span>Loading next chapter: <strong className="text-white">{nextComicTitle}</strong></span>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-slate-400 text-xs py-2">
@@ -543,19 +570,9 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                 </h3>
 
                 {hasNextComic ? (
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-300 font-medium truncate pr-2">
-                      Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onLoadNextComic) onLoadNextComic();
-                      }}
-                      className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shrink-0 flex items-center space-x-1.5 shadow-md"
-                    >
-                      <span>Next Chapter →</span>
-                    </button>
+                  <div className="flex items-center justify-center space-x-2 pt-1 text-xs text-emerald-300 font-medium">
+                    <div className="w-3.5 h-3.5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin shrink-0" />
+                    <span>Auto-loading: <strong className="text-white">{nextComicTitle}</strong></span>
                   </div>
                 ) : (
                   <p className="text-slate-400 text-xs py-1">

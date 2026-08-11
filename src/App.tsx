@@ -24,9 +24,9 @@ const STORAGE_SETTINGS_KEY = 'cbz_reader_settings_v1';
 const STORAGE_RECENTS_KEY = 'cbz_reader_recents_v1';
 
 const DEFAULT_SETTINGS: ReaderSettings = {
-  layoutMode: 'paged',
+  layoutMode: 'webtoon',
   spreadMode: 'single',
-  webtoonWidth: '760px',
+  webtoonWidth: '500px',
   autoHideUI: true,
   autoNextComic: true,
   doublePageSpread: false,
@@ -72,7 +72,8 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_SETTINGS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const layoutMode = parsed.layoutMode || 'paged';
+        const layoutMode = parsed.layoutMode || 'webtoon';
+        const webtoonWidth = parsed.webtoonWidth || '500px';
         const spreadMode =
           parsed.spreadMode ||
           (parsed.doublePageSpread ? 'spread' : parsed.autoSpreadOnWideScreen ? 'auto' : 'single');
@@ -80,6 +81,7 @@ export default function App() {
           ...DEFAULT_SETTINGS,
           ...parsed,
           layoutMode,
+          webtoonWidth,
           spreadMode,
           doublePageSpread: spreadMode === 'spread',
           autoSpreadOnWideScreen: spreadMode === 'auto',
@@ -374,6 +376,14 @@ export default function App() {
     }
   }, [currentComic, settings.doublePageSpread, currentPageIndex, handlePageChange, hasPrevComic, handleLoadPrevComic]);
 
+  const handleCloseComic = useCallback(() => {
+    setCurrentComic(null);
+    setZipInstance(null);
+    setCurrentPageIndex(0);
+    setActiveDirectoryIndex(-1);
+    setDirectoryItems([]);
+  }, []);
+
   // Global Keyboard Navigation Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -407,6 +417,12 @@ export default function App() {
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'o' || e.key === 'O')) {
         e.preventDefault();
         handleOpenFilePicker();
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'w' || e.key === 'W')) {
+        e.preventDefault();
+        handleCloseComic();
+      } else if (e.key === 'Escape' && currentComic) {
+        e.preventDefault();
+        handleCloseComic();
       } else if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
         e.preventDefault();
         setSidebarOpen((prev) => !prev);
@@ -441,6 +457,7 @@ export default function App() {
     shortcutsOpen,
     preferencesOpen,
     handlePageChange,
+    handleCloseComic,
   ]);
 
   // Global Window Drag & Drop Handler (Recursively scans dropped folders & files)
@@ -500,6 +517,8 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           onOpenFile={handleOpenFilePicker}
           onOpenFolder={handleOpenFolderPicker}
+          onCloseComic={handleCloseComic}
+          isComicLoaded={!!currentComic}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           onOpenPackager={() => setPackagerOpen(true)}
           onOpenTests={() => setTestsOpen(true)}
@@ -543,6 +562,7 @@ export default function App() {
             }}
             onOpenFile={handleOpenFilePicker}
             onOpenFolder={handleOpenFolderPicker}
+            onCloseComic={handleCloseComic}
             onOpenPackager={() => setPackagerOpen(true)}
             onOpenTests={() => setTestsOpen(true)}
           />
