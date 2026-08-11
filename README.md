@@ -32,8 +32,8 @@ A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **Reac
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/arm64-cbz-reader.git
-cd arm64-cbz-reader
+git clone https://github.com/your-username/koda-reader.git
+cd koda-reader
 
 # Install dependencies
 npm install
