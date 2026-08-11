@@ -50,7 +50,7 @@ export const DebugHud: React.FC<DebugHudProps> = ({
         <div className="flex justify-between">
           <span className="text-slate-400">Hit / Miss Ratio:</span>
           <span className="font-bold text-purple-300">
-            {stats.cacheHitCount}H / {stats.missCount}M
+            {stats.cacheHitCount}H / {stats.cacheMissCount}M
           </span>
         </div>
       </div>

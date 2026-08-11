@@ -12,7 +12,7 @@ export type SpreadMode = 'single' | 'spread' | 'auto'; // Single page, Two-page 
 
 export interface ComicPageEntry {
   index: number;
-  entryPath: String;
+  entryPath: string;
   fileName: string;
   blobUrl?: string;
   size?: number;
