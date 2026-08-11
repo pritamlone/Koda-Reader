@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   BookOpen,
   Clock,
@@ -12,6 +12,10 @@ import {
   FolderTree,
   PlayCircle,
   CheckCircle2,
+  Search,
+  ArrowUpDown,
+  ListOrdered,
+  Sparkles,
 } from 'lucide-react';
 import { RecentComicItem, ComicBook } from '../types/comic';
 import { DirectoryComicItem } from '../utils/directoryReader';
@@ -43,6 +47,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenPackager,
   onOpenTests,
 }) => {
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortAscending, setSortAscending] = useState<boolean>(true);
+
+  // Filter and sort items dynamically
+  const filteredItems = useMemo(() => {
+    let items = directoryItems.map((item, originalIndex) => ({
+      item,
+      originalIndex,
+    }));
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      items = items.filter(({ item }) => {
+        const nameMatch = item.fileName.toLowerCase().includes(q);
+        const badgeMatch = item.parsedBadge?.toLowerCase().includes(q);
+        const chapterMatch =
+          item.chapterNumber !== undefined &&
+          item.chapterNumber.toString().includes(q);
+        return nameMatch || badgeMatch || chapterMatch;
+      });
+    }
+
+    if (!sortAscending) {
+      items = [...items].reverse();
+    }
+
+    return items;
+  }, [directoryItems, searchQuery, sortAscending]);
+
   return (
     <aside className="w-72 bg-slate-900/95 border-r border-white/10 flex flex-col h-full shrink-0 select-none text-slate-300 z-20">
       {/* Top Header */}
@@ -57,13 +90,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-6">
+      <div className="flex-1 overflow-y-auto p-3 space-y-5">
         {/* Quick Actions */}
         <div className="space-y-1.5">
           <div className="grid grid-cols-2 gap-1.5">
             <button
               onClick={onOpenFile}
-              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-medium text-xs transition-all"
+              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-medium text-xs transition-all shadow-sm"
               title="Open CBZ / ZIP Archive"
             >
               <FolderOpen size={15} />
@@ -72,8 +105,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={onOpenFolder}
-              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition-all"
-              title="Open Entire Series Directory Folder"
+              className="flex items-center justify-center space-x-1.5 px-2.5 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium text-xs transition-all shadow-sm"
+              title="Open Entire Series Directory Folder (IINA Style)"
             >
               <FolderTree size={15} />
               <span className="truncate">Open Folder</span>
@@ -82,58 +115,140 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <button
             onClick={onOpenPackager}
-            className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700 text-xs transition-all"
+            className="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 text-xs transition-all"
           >
-            <Package size={16} className="text-purple-400" />
+            <Package size={15} className="text-purple-400" />
             <span>Package Images to CBZ</span>
           </button>
         </div>
 
-        {/* Directory Series / Continuous Playlist */}
+        {/* Directory Series / Mihon Playlist */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
             <div className="flex items-center space-x-1.5">
-              <FolderTree size={14} className="text-emerald-400" />
-              <span>Folder Playlist</span>
+              <ListOrdered size={14} className="text-emerald-400" />
+              <span>Chapter Playlist</span>
             </div>
             {directoryItems.length > 0 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
-                {directoryItems.length} {directoryItems.length === 1 ? 'file' : 'files'}
-              </span>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setSortAscending((prev) => !prev)}
+                  className="p-1 text-slate-400 hover:text-emerald-400 transition-colors rounded hover:bg-slate-800"
+                  title={sortAscending ? 'Sort Descending' : 'Sort Ascending'}
+                >
+                  <ArrowUpDown size={12} />
+                </button>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                  {directoryItems.length} {directoryItems.length === 1 ? 'ch' : 'chs'}
+                </span>
+              </div>
             )}
           </div>
 
+          {directoryItems.length > 1 && (
+            <div className="relative px-0.5">
+              <Search
+                size={13}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              />
+              <input
+                type="text"
+                placeholder="Filter chapter or title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-200 text-xs placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/60 transition-all"
+              />
+            </div>
+          )}
+
           {directoryItems.length === 0 ? (
-            <div className="p-3 text-center border border-dashed border-slate-800 rounded-lg text-slate-500 text-xs leading-relaxed">
-              Open a CBZ file or folder to automatically load and read all series episodes continuously.
+            <div className="p-3 text-center border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs leading-relaxed space-y-2">
+              <Sparkles size={16} className="mx-auto text-slate-600" />
+              <p>
+                Open a CBZ file or folder. Koda Reader automatically indexes all chapters in natural Mihon order.
+              </p>
+            </div>
+          ) : directoryItems.length === 1 ? (
+            <div className="space-y-2">
+              <div className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/80 text-xs">
+                <div className="flex items-center space-x-2 text-emerald-400 font-medium">
+                  <PlayCircle size={14} />
+                  <span className="truncate">{directoryItems[0].fileName}</span>
+                </div>
+                {directoryItems[0].parsedBadge && (
+                  <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                    {directoryItems[0].parsedBadge}
+                  </span>
+                )}
+              </div>
+
+              {/* IINA Folder Auto-Discovery Helper */}
+              <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-800/40 text-[11px] text-indigo-200 space-y-2">
+                <div className="flex items-center space-x-1.5 font-semibold text-indigo-300">
+                  <FolderTree size={14} />
+                  <span>Read Entire Manhua Series?</span>
+                </div>
+                <p className="text-indigo-300/80 leading-normal">
+                  Select your manhua folder to automatically index all episodes continuously (IINA Style).
+                </p>
+                <button
+                  onClick={onOpenFolder}
+                  className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-md flex items-center justify-center space-x-1.5"
+                >
+                  <FolderOpen size={13} />
+                  <span>Open Series Folder</span>
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
-              {directoryItems.map((item, idx) => {
-                const isActive = idx === activeDirectoryIndex;
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+              {filteredItems.map(({ item, originalIndex }) => {
+                const isActive = originalIndex === activeDirectoryIndex;
                 return (
                   <button
                     key={item.id}
-                    onClick={() => onSelectDirectoryItem(item, idx)}
+                    onClick={() => onSelectDirectoryItem(item, originalIndex)}
                     className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center justify-between group ${
                       isActive
-                        ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 font-medium'
+                        ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 font-medium shadow-sm'
                         : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
                     }`}
                   >
-                    <div className="flex items-center space-x-2 truncate pr-1">
+                    <div className="flex items-center space-x-2 truncate pr-1 min-w-0">
                       {isActive ? (
-                        <PlayCircle size={14} className="shrink-0 text-emerald-400 animate-pulse" />
+                        <PlayCircle
+                          size={14}
+                          className="shrink-0 text-emerald-400 animate-pulse"
+                        />
                       ) : (
-                        <span className="text-[10px] font-mono shrink-0 w-4 text-slate-500 group-hover:text-slate-300">
-                          {idx + 1}.
+                        <span className="text-[10px] font-mono shrink-0 text-slate-500 group-hover:text-slate-300">
+                          {originalIndex + 1}.
                         </span>
                       )}
-                      <span className="truncate text-xs">{item.fileName}</span>
+                      <div className="truncate min-w-0 flex-1">
+                        <span className="truncate block">{item.fileName}</span>
+                      </div>
                     </div>
-                    {isActive && (
-                      <CheckCircle2 size={13} className="shrink-0 text-emerald-400 ml-1" />
-                    )}
+
+                    <div className="flex items-center space-x-1 shrink-0 ml-1">
+                      {item.parsedBadge && item.parsedBadge !== 'File' && (
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            isActive
+                              ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {item.parsedBadge}
+                        </span>
+                      )}
+                      {isActive && (
+                        <CheckCircle2
+                          size={13}
+                          className="shrink-0 text-emerald-400"
+                        />
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -213,11 +328,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 border-t border-white/10 text-[11px] text-slate-500 flex items-center justify-between bg-slate-950/40">
         <span className="flex items-center space-x-1">
           <HardDrive size={12} />
-          <span>macOS Sonoma Engine</span>
+          <span>Koda Engine v1.0.0</span>
         </span>
-        <span>v1.0.0</span>
+        <span className="text-emerald-400 font-mono">Mihon Index</span>
       </div>
     </aside>
   );
 };
-

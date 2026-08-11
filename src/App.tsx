@@ -17,6 +17,7 @@ import {
   DirectoryComicItem,
   scanDirectoryForComics,
   loadDirectoryItemBuffer,
+  processDroppedDataTransfer,
 } from './utils/directoryReader';
 
 const STORAGE_SETTINGS_KEY = 'cbz_reader_settings_v1';
@@ -200,8 +201,8 @@ export default function App() {
   );
 
   // Load a batch of files or a single file and scan its directory
-  const handleOpenFilesOrFolder = async (files: FileList | File[]) => {
-    if (!files || files.length === 0) return;
+  const handleOpenFilesOrFolder = async (files: FileList | File[] | File) => {
+    if (!files) return;
 
     const scannedItems = scanDirectoryForComics(files);
     setDirectoryItems(scannedItems);
@@ -209,11 +210,18 @@ export default function App() {
     if (scannedItems.length > 0) {
       // Find the index of the primary file if present, else 0
       let initialIdx = 0;
-      if (files instanceof FileList && files.length === 1) {
-        const targetName = files[0].name;
+      let targetName = '';
+      if (files instanceof File) {
+        targetName = files.name;
+      } else if ((files instanceof FileList || Array.isArray(files)) && files.length === 1) {
+        targetName = files[0].name;
+      }
+
+      if (targetName) {
         const found = scannedItems.findIndex((it) => it.fileName === targetName);
         if (found !== -1) initialIdx = found;
       }
+
       await handleSelectDirectoryItem(scannedItems[initialIdx], initialIdx, 0);
     }
   };
@@ -435,11 +443,12 @@ export default function App() {
     handlePageChange,
   ]);
 
-  // Global Window Drag & Drop Handler
+  // Global Window Drag & Drop Handler (Recursively scans dropped folders & files)
   const handleWindowDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await handleOpenFilesOrFolder(e.dataTransfer.files);
+    const droppedFiles = await processDroppedDataTransfer(e.dataTransfer);
+    if (droppedFiles && droppedFiles.length > 0) {
+      await handleOpenFilesOrFolder(droppedFiles);
     }
   };
 
