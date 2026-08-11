@@ -12,7 +12,7 @@ import { DebugHud } from './DebugHud';
 import { CBZParser } from '../utils/cbzParser';
 import { LRUImageCache } from '../utils/lruCache';
 import { calculatePagePairs } from '../utils/testRunner';
-import { Upload, ChevronLeft, ChevronRight, BookOpen, Play, Sparkles } from 'lucide-react';
+import { Upload, ChevronLeft, ChevronRight, BookOpen, Play, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface ReaderViewProps {
   currentComic: ComicBook | null;
@@ -30,6 +30,11 @@ interface ReaderViewProps {
   onLoadNextComic?: () => void;
   nextComicTitle?: string;
   hasNextComic?: boolean;
+  onLoadPrevComic?: () => void;
+  prevComicTitle?: string;
+  hasPrevComic?: boolean;
+  chapterNumber?: number;
+  totalChapters?: number;
 }
 
 export const ReaderView: React.FC<ReaderViewProps> = ({
@@ -48,6 +53,11 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   onLoadNextComic,
   nextComicTitle,
   hasNextComic = false,
+  onLoadPrevComic,
+  prevComicTitle,
+  hasPrevComic = false,
+  chapterNumber,
+  totalChapters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const webtoonScrollRef = useRef<HTMLDivElement>(null);
@@ -58,6 +68,19 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
   const webtoonEndBannerRef = useRef<HTMLDivElement>(null);
   const [isWebtoonEndVisible, setIsWebtoonEndVisible] = useState<boolean>(false);
+
+  // Floating Toast Overlay for New Chapter
+  const [showChapterToast, setShowChapterToast] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentComic) {
+      setShowChapterToast(true);
+      const timer = setTimeout(() => {
+        setShowChapterToast(false);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentComic?.id, chapterNumber]);
 
   useEffect(() => {
     if (!isWebtoon || !webtoonEndBannerRef.current) {
@@ -81,33 +104,11 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     return () => observer.disconnect();
   }, [isWebtoon, currentComic?.id]);
 
-  // Auto Next Issue Countdown
   const isEndReached = currentComic
     ? isWebtoon
       ? isWebtoonEndVisible
       : currentPageIndex >= currentComic.totalPages - 1
     : false;
-  const [autoNextCountdown, setAutoNextCountdown] = useState<number>(4);
-
-  useEffect(() => {
-    if (isEndReached && settings.autoNextComic && onLoadNextComic && hasNextComic) {
-      setAutoNextCountdown(4);
-      const interval = setInterval(() => {
-        setAutoNextCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            onLoadNextComic();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(interval);
-    } else {
-      setAutoNextCountdown(4);
-    }
-  }, [isEndReached, settings.autoNextComic, currentComic?.id, onLoadNextComic, hasNextComic]);
 
   // Initialize LRU Image Cache
   const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity));
@@ -392,6 +393,21 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         />
       )}
 
+      {/* Floating Chapter Toast Indicator Badge */}
+      {showChapterToast && currentComic && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300">
+          <div className="px-4 py-2 rounded-full bg-slate-900/90 border border-emerald-500/40 text-emerald-300 text-xs font-semibold shadow-2xl flex items-center space-x-2 backdrop-blur-md">
+            <BookOpen size={14} className="text-emerald-400" />
+            <span>
+              {chapterNumber && totalChapters && totalChapters > 0
+                ? `Chapter ${chapterNumber} of ${totalChapters}`
+                : 'Chapter'}{' '}
+              : <span className="text-white font-bold">{currentComic.title}</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Main Canvas Viewport */}
       <div className={`w-full h-full flex flex-col items-center justify-center ${isWebtoon ? 'p-0' : 'p-1 sm:p-2'} overflow-hidden relative`}>
         {isWebtoon ? (
@@ -408,6 +424,22 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                 maxWidth: settings.webtoonWidth === '100%' ? '100%' : settings.webtoonWidth || '760px',
               }}
             >
+              {/* Previous Chapter Top Banner in Webtoon Mode */}
+              {hasPrevComic && onLoadPrevComic && (
+                <div className="w-full text-xs text-slate-200 py-3 px-4 flex justify-center bg-slate-900/60 border-b border-slate-800/80 leading-normal">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLoadPrevComic();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs border border-slate-700 transition-all flex items-center space-x-2 shadow-md"
+                  >
+                    <ChevronLeft size={14} className="text-emerald-400" />
+                    <span>Previous Chapter: {prevComicTitle}</span>
+                  </button>
+                </div>
+              )}
+
               {currentComic.entries.map((entry, idx) => (
                 <div
                   key={idx}
@@ -427,60 +459,32 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               ))}
 
               {/* End of Webtoon Stream Continuous Reading Banner */}
-              <div ref={webtoonEndBannerRef} className="w-full text-base leading-normal text-slate-200 py-6 px-4">
-                <div className="w-full max-w-lg mx-auto bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-2xl text-center space-y-3">
-                  <div className="flex items-center justify-center space-x-1.5 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-                    <Sparkles size={16} />
-                    <span>Continuous Series Reading</span>
+              <div ref={webtoonEndBannerRef} className="w-full text-base leading-normal text-slate-200 py-8 px-4">
+                <div className="w-full max-w-lg mx-auto bg-slate-900/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl text-center space-y-4 backdrop-blur-md">
+                  <div className="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                    <CheckCircle2 size={16} />
+                    <span>Completed {currentComic.title}</span>
                   </div>
-                  <h3 className="text-slate-100 font-bold text-base">
-                    Finished {currentComic.title}
-                  </h3>
 
                   {hasNextComic ? (
-                    <>
+                    <div className="space-y-3 pt-1">
                       <p className="text-slate-300 text-xs font-medium">
-                        Up Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
+                        Next Chapter: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
                       </p>
-
-                      {settings.autoNextComic && autoNextCountdown > 0 ? (
-                        <div className="space-y-1.5 pt-1">
-                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
-                              style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-emerald-300 font-mono font-medium">
-                            Loading next chapter in {autoNextCountdown}s...
-                          </p>
-                        </div>
-                      ) : null}
-
-                      <div className="flex items-center justify-center space-x-2 pt-1">
-                        <button
-                          onClick={() => {
-                            if (onLoadNextComic) onLoadNextComic();
-                          }}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5"
-                        >
-                          <Play size={14} />
-                          <span>Read Next Chapter Now</span>
-                        </button>
-
-                        {settings.autoNextComic && autoNextCountdown > 0 && (
-                          <button
-                            onClick={() => setAutoNextCountdown(0)}
-                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all border border-slate-700"
-                          >
-                            Pause Auto-Play
-                          </button>
-                        )}
-                      </div>
-                    </>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onLoadNextComic) onLoadNextComic();
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center space-x-2"
+                      >
+                        <Play size={14} />
+                        <span>Read Next Chapter →</span>
+                      </button>
+                    </div>
                   ) : (
                     <p className="text-slate-400 text-xs py-2">
-                      🎉 You have completed all episodes in this directory folder!
+                      🎉 You have completed all chapters in this folder!
                     </p>
                   )}
                 </div>
@@ -529,59 +533,33 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
             {/* Paged Mode End of Chapter Floating Continuous Card */}
             {isEndReached && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md p-4 bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl text-center space-y-2 z-30">
+              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md p-4 bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl text-center space-y-2 z-30 backdrop-blur-md">
                 <div className="flex items-center justify-center space-x-1.5 text-emerald-400 font-bold text-xs uppercase tracking-wider">
                   <Sparkles size={14} />
-                  <span>End of Chapter • Series Auto-Play</span>
+                  <span>End of Chapter</span>
                 </div>
-                <h3 className="text-slate-100 font-bold text-sm">
-                  Finished {currentComic.title}
+                <h3 className="text-slate-100 font-bold text-sm truncate">
+                  {currentComic.title}
                 </h3>
 
                 {hasNextComic ? (
-                  <>
-                    <p className="text-slate-300 text-xs font-medium">
-                      Up Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
-                    </p>
-
-                    {settings.autoNextComic && autoNextCountdown > 0 ? (
-                      <div className="space-y-1">
-                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-emerald-500 h-full transition-all duration-1000 ease-linear"
-                            style={{ width: `${(autoNextCountdown / 4) * 100}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-emerald-300 font-mono font-medium">
-                          Loading next chapter in {autoNextCountdown}s...
-                        </p>
-                      </div>
-                    ) : null}
-
-                    <div className="flex items-center justify-center space-x-2 pt-1">
-                      <button
-                        onClick={() => {
-                          if (onLoadNextComic) onLoadNextComic();
-                        }}
-                        className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5"
-                      >
-                        <Play size={14} />
-                        <span>Read Next Chapter Now</span>
-                      </button>
-
-                      {settings.autoNextComic && autoNextCountdown > 0 && (
-                        <button
-                          onClick={() => setAutoNextCountdown(0)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs border border-slate-700"
-                        >
-                          Pause
-                        </button>
-                      )}
-                    </div>
-                  </>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-slate-300 font-medium truncate pr-2">
+                      Next: <span className="text-emerald-400 font-bold">{nextComicTitle}</span>
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onLoadNextComic) onLoadNextComic();
+                      }}
+                      className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shrink-0 flex items-center space-x-1.5 shadow-md"
+                    >
+                      <span>Next Chapter →</span>
+                    </button>
+                  </div>
                 ) : (
                   <p className="text-slate-400 text-xs py-1">
-                    🎉 You have completed all episodes in this directory folder!
+                    🎉 End of Series in this directory
                   </p>
                 )}
               </div>

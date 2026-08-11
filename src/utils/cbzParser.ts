@@ -55,7 +55,6 @@ export class CBZParser {
       readingDirection: 'ltr',
       fileSize,
       createdAt: Date.now(),
-      rawZipBuffer: arrayBuffer,
     };
 
     return {

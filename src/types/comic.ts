@@ -31,7 +31,6 @@ export interface ComicBook {
   fileSize: number;
   createdAt: number;
   fileHandle?: File;
-  rawZipBuffer?: ArrayBuffer;
 }
 
 export interface PagePair {

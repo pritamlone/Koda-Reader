@@ -147,7 +147,8 @@ export default function App() {
   const loadComicBuffer = async (
     buffer: File | ArrayBuffer,
     fileName: string,
-    initialPage: number = 0
+    initialPage: number = 0,
+    chapterIndex?: number
   ) => {
     setIsLoadingComic(true);
     try {
@@ -156,16 +157,21 @@ export default function App() {
         fileName
       );
 
+      const actualPage =
+        initialPage === -1
+          ? Math.max(0, comic.totalPages - 1)
+          : Math.max(0, Math.min(comic.totalPages - 1, initialPage));
+
       setCurrentComic(comic);
       setZipInstance(loadedZip);
-      setCurrentPageIndex(initialPage);
+      setCurrentPageIndex(actualPage);
 
       // Default reading direction if filename hints manga
       if (fileName.toLowerCase().includes('manga') || fileName.toLowerCase().includes('rtl')) {
         handleUpdateSettings({ readingDirection: 'rtl' });
       }
 
-      updateRecentHistory(comic, initialPage);
+      updateRecentHistory(comic, actualPage);
     } catch (err: any) {
       alert(`Error loading CBZ file: ${err?.message || err}`);
     } finally {
@@ -175,12 +181,15 @@ export default function App() {
 
   // Select a specific episode item from the directory playlist
   const handleSelectDirectoryItem = useCallback(
-    async (item: DirectoryComicItem, index: number) => {
+    async (item: DirectoryComicItem, index: number, initialPage: number = 0) => {
       try {
         setIsLoadingComic(true);
+        // Explicitly release previous JSZip instance & buffers to keep RAM lightweight
+        setZipInstance(null);
+
         const { buffer, fileName } = await loadDirectoryItemBuffer(item);
         setActiveDirectoryIndex(index);
-        await loadComicBuffer(buffer, fileName, 0);
+        await loadComicBuffer(buffer, fileName, initialPage, index);
       } catch (err: any) {
         alert(`Failed to load directory episode: ${err?.message || err}`);
       } finally {
@@ -205,7 +214,7 @@ export default function App() {
         const found = scannedItems.findIndex((it) => it.fileName === targetName);
         if (found !== -1) initialIdx = found;
       }
-      await handleSelectDirectoryItem(scannedItems[initialIdx], initialIdx);
+      await handleSelectDirectoryItem(scannedItems[initialIdx], initialIdx, 0);
     }
   };
 
@@ -216,7 +225,7 @@ export default function App() {
       activeDirectoryIndex < directoryItems.length - 1
     ) {
       const nextIdx = activeDirectoryIndex + 1;
-      await handleSelectDirectoryItem(directoryItems[nextIdx], nextIdx);
+      await handleSelectDirectoryItem(directoryItems[nextIdx], nextIdx, 0);
     }
   }, [activeDirectoryIndex, directoryItems, handleSelectDirectoryItem]);
 
@@ -224,7 +233,7 @@ export default function App() {
   const handleLoadPrevComic = useCallback(async () => {
     if (activeDirectoryIndex > 0 && directoryItems.length > 0) {
       const prevIdx = activeDirectoryIndex - 1;
-      await handleSelectDirectoryItem(directoryItems[prevIdx], prevIdx);
+      await handleSelectDirectoryItem(directoryItems[prevIdx], prevIdx, -1);
     }
   }, [activeDirectoryIndex, directoryItems, handleSelectDirectoryItem]);
 
@@ -317,17 +326,45 @@ export default function App() {
     [currentComic]
   );
 
+  const hasNextComic =
+    activeDirectoryIndex >= 0 && activeDirectoryIndex < directoryItems.length - 1;
+  const hasPrevComic = activeDirectoryIndex > 0 && directoryItems.length > 0;
+  const nextComicTitle = hasNextComic
+    ? directoryItems[activeDirectoryIndex + 1].fileName
+    : undefined;
+  const prevComicTitle = hasPrevComic
+    ? directoryItems[activeDirectoryIndex - 1].fileName
+    : undefined;
+
   const nextPage = useCallback(() => {
     if (!currentComic) return;
     const step = settings.doublePageSpread ? 2 : 1;
-    handlePageChange(currentPageIndex + step);
-  }, [currentComic, settings.doublePageSpread, currentPageIndex, handlePageChange]);
+    const targetIdx = currentPageIndex + step;
+    if (targetIdx >= currentComic.totalPages) {
+      if (hasNextComic) {
+        handleLoadNextComic();
+      } else {
+        handlePageChange(currentComic.totalPages - 1);
+      }
+    } else {
+      handlePageChange(targetIdx);
+    }
+  }, [currentComic, settings.doublePageSpread, currentPageIndex, handlePageChange, hasNextComic, handleLoadNextComic]);
 
   const prevPage = useCallback(() => {
     if (!currentComic) return;
     const step = settings.doublePageSpread ? 2 : 1;
-    handlePageChange(currentPageIndex - step);
-  }, [currentComic, settings.doublePageSpread, currentPageIndex, handlePageChange]);
+    const targetIdx = currentPageIndex - step;
+    if (targetIdx < 0) {
+      if (hasPrevComic) {
+        handleLoadPrevComic();
+      } else {
+        handlePageChange(0);
+      }
+    } else {
+      handlePageChange(targetIdx);
+    }
+  }, [currentComic, settings.doublePageSpread, currentPageIndex, handlePageChange, hasPrevComic, handleLoadPrevComic]);
 
   // Global Keyboard Navigation Listener
   useEffect(() => {
@@ -406,13 +443,6 @@ export default function App() {
     }
   };
 
-  const hasNextComic =
-    activeDirectoryIndex >= 0 && activeDirectoryIndex < directoryItems.length - 1;
-  const hasPrevComic = activeDirectoryIndex > 0 && directoryItems.length > 0;
-  const nextComicTitle = hasNextComic
-    ? directoryItems[activeDirectoryIndex + 1].fileName
-    : undefined;
-
   return (
     <div
       onDragOver={(e) => e.preventDefault()}
@@ -447,7 +477,11 @@ export default function App() {
           title={currentComic?.title || 'macOS Native CBZ Reader'}
           subTitle={
             currentComic
-              ? `Page ${currentPageIndex + 1} of ${currentComic.totalPages} • ${(
+              ? `${
+                  directoryItems.length > 0 && activeDirectoryIndex >= 0
+                    ? `Ch. ${activeDirectoryIndex + 1} of ${directoryItems.length} • `
+                    : ''
+                }Page ${currentPageIndex + 1} of ${currentComic.totalPages} • ${(
                   currentComic.fileSize /
                   (1024 * 1024)
                 ).toFixed(1)} MB`
@@ -526,6 +560,11 @@ export default function App() {
           onLoadNextComic={handleLoadNextComic}
           nextComicTitle={nextComicTitle}
           hasNextComic={hasNextComic}
+          onLoadPrevComic={handleLoadPrevComic}
+          prevComicTitle={prevComicTitle}
+          hasPrevComic={hasPrevComic}
+          chapterNumber={activeDirectoryIndex >= 0 ? activeDirectoryIndex + 1 : undefined}
+          totalChapters={directoryItems.length}
         />
       </div>
 
