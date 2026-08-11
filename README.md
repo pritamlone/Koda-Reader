@@ -1,3 +1,5 @@
+<img width="320" height="320" alt="kodologo Small" src="https://github.com/user-attachments/assets/80249c37-2666-45e2-928f-a42989434b37" />
+
 # Koda Reader 📚
 
 A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **React, TypeScript, Tailwind CSS, Vite, and Electron**, tailored specifically for macOS.
