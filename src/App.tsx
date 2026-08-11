@@ -47,6 +47,7 @@ export default function App() {
   const [zipInstance, setZipInstance] = useState<JSZip | null>(null);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [isLoadingComic, setIsLoadingComic] = useState<boolean>(false);
+  const isLoadingComicRef = useRef<boolean>(false);
 
   // Directory Series Playlist State (Continuous Reading across directory)
   const [directoryItems, setDirectoryItems] = useState<DirectoryComicItem[]>([]);
@@ -185,8 +186,11 @@ export default function App() {
   // Select a specific episode item from the directory playlist
   const handleSelectDirectoryItem = useCallback(
     async (item: DirectoryComicItem, index: number, initialPage: number = 0) => {
+      if (isLoadingComicRef.current) return;
+      isLoadingComicRef.current = true;
+      setIsLoadingComic(true);
+
       try {
-        setIsLoadingComic(true);
         // Explicitly release previous JSZip instance & buffers to keep RAM lightweight
         setZipInstance(null);
 
@@ -196,6 +200,7 @@ export default function App() {
       } catch (err: any) {
         alert(`Failed to load directory episode: ${err?.message || err}`);
       } finally {
+        isLoadingComicRef.current = false;
         setIsLoadingComic(false);
       }
     },

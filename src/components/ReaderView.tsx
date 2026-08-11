@@ -110,42 +110,6 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       : currentPageIndex >= currentComic.totalPages - 1
     : false;
 
-  // Auto-advance to next chapter seamlessly without asking for clicks
-  const hasAutoLoadedNextRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (
-      isWebtoon &&
-      isWebtoonEndVisible &&
-      hasNextComic &&
-      onLoadNextComic &&
-      hasAutoLoadedNextRef.current !== currentComic?.id
-    ) {
-      hasAutoLoadedNextRef.current = currentComic?.id || null;
-      const timer = setTimeout(() => {
-        onLoadNextComic();
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [isWebtoon, isWebtoonEndVisible, hasNextComic, onLoadNextComic, currentComic?.id]);
-
-  useEffect(() => {
-    if (
-      !isWebtoon &&
-      isEndReached &&
-      hasNextComic &&
-      settings.autoNextComic &&
-      onLoadNextComic &&
-      hasAutoLoadedNextRef.current !== currentComic?.id
-    ) {
-      hasAutoLoadedNextRef.current = currentComic?.id || null;
-      const timer = setTimeout(() => {
-        onLoadNextComic();
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [isWebtoon, isEndReached, hasNextComic, settings.autoNextComic, onLoadNextComic, currentComic?.id]);
-
   // Initialize LRU Image Cache
   const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity));
   const [cachedUrls, setCachedUrls] = useState<Record<number, string>>({});
@@ -157,6 +121,48 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     lastExtractionTimeMs: 0,
     activeBlobUrlsCount: 0,
   });
+
+  // Memory cleanup: Clear LRU cache and blob URLs whenever active chapter changes
+  useEffect(() => {
+    lruCacheRef.current.clear();
+    setCachedUrls({});
+  }, [currentComic?.id]);
+
+  // Auto-advance to next chapter seamlessly without race conditions or cancelled timers
+  const isAutoAdvancingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isAutoAdvancingRef.current = false;
+  }, [currentComic?.id]);
+
+  useEffect(() => {
+    if (
+      isWebtoon &&
+      isWebtoonEndVisible &&
+      hasNextComic &&
+      onLoadNextComic &&
+      !isLoadingComic &&
+      !isAutoAdvancingRef.current
+    ) {
+      isAutoAdvancingRef.current = true;
+      onLoadNextComic();
+    }
+  }, [isWebtoon, isWebtoonEndVisible, hasNextComic, onLoadNextComic, isLoadingComic]);
+
+  useEffect(() => {
+    if (
+      !isWebtoon &&
+      isEndReached &&
+      hasNextComic &&
+      settings.autoNextComic &&
+      onLoadNextComic &&
+      !isLoadingComic &&
+      !isAutoAdvancingRef.current
+    ) {
+      isAutoAdvancingRef.current = true;
+      onLoadNextComic();
+    }
+  }, [isWebtoon, isEndReached, hasNextComic, settings.autoNextComic, onLoadNextComic, isLoadingComic]);
 
   // Track container width for responsive spread threshold calculation
   useEffect(() => {
