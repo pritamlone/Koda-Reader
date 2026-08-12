@@ -30,22 +30,34 @@ A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **Reac
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/koda-reader.git
-cd koda-reader
+Execute each command one by one in your terminal:
 
-# Install dependencies
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/koda-reader.git
+```
+
+2. Navigate into the project directory:
+```bash
+cd koda-reader
+```
+
+3. Install project dependencies:
+```bash
 npm install
 ```
 
 ### Running in Development
 
-```bash
-# Start Vite development server
-npm run dev
+Run one of the following commands depending on how you want to run the app:
 
-# Launch Electron app in dev mode
+- For Web Browser development:
+```bash
+npm run dev
+```
+
+- For Desktop (Electron) development:
+```bash
 npm run electron:dev
 ```
 
