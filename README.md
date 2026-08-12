@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="#">
-  <img src="./assets/logo.svg" alt="Koda Reader logo" title="Koda Reader logo" width="96"/>
+  <img src="./assets/logo.svg" alt="Koda Reader logo" title="Koda Reader logo" width="160" height="auto"/>
 </a>
 
 # Koda Reader
