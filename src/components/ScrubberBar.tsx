@@ -8,6 +8,9 @@ interface ScrubberBarProps {
   onPageChange: (pageIndex: number) => void;
   readingDirection: ReadingDirection;
   pageBlobs?: (string | null)[];
+  isWebtoon?: boolean;
+  scrollRatio?: number;
+  onScrollRatioChange?: (ratio: number) => void;
 }
 
 export const ScrubberBar: React.FC<ScrubberBarProps> = ({
@@ -15,28 +18,54 @@ export const ScrubberBar: React.FC<ScrubberBarProps> = ({
   totalPages,
   onPageChange,
   readingDirection,
+  isWebtoon = false,
+  scrollRatio = 0,
+  onScrollRatioChange,
 }) => {
   const [hoverPage, setHoverPage] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragRatio, setDragRatio] = useState<number>(scrollRatio);
   const [dragPage, setDragPage] = useState<number>(currentPage);
 
-  // Sync dragPage with currentPage when not dragging
+  // Sync drag states when not dragging
   useEffect(() => {
     if (!isDragging) {
       setDragPage(currentPage);
+      setDragRatio(scrollRatio);
     }
-  }, [currentPage, isDragging]);
+  }, [currentPage, scrollRatio, isDragging]);
 
   if (totalPages <= 0) return null;
 
+  const currentRatio = isDragging ? dragRatio : scrollRatio;
   const displayPage = isDragging ? dragPage : currentPage;
-  const progressPercent = totalPages > 1 ? (displayPage / (totalPages - 1)) * 100 : 0;
 
-  const handleSliderChange = (val: number) => {
-    const clamped = Math.max(0, Math.min(totalPages - 1, val));
-    setDragPage(clamped);
-    onPageChange(clamped);
+  const progressPercent = isWebtoon
+    ? Math.max(0, Math.min(100, currentRatio * 100))
+    : totalPages > 1
+    ? (displayPage / (totalPages - 1)) * 100
+    : 0;
+
+  const handleSliderInput = (rawVal: number) => {
+    if (isWebtoon && onScrollRatioChange) {
+      const ratio = Math.max(0, Math.min(1, rawVal / 1000));
+      setDragRatio(ratio);
+      const estPage = Math.min(totalPages - 1, Math.floor(ratio * totalPages));
+      setDragPage(estPage);
+      setHoverPage(estPage);
+      onScrollRatioChange(ratio);
+    } else {
+      const clamped = Math.max(0, Math.min(totalPages - 1, rawVal));
+      setDragPage(clamped);
+      setHoverPage(clamped);
+      onPageChange(clamped);
+    }
   };
+
+  const sliderMax = isWebtoon ? 1000 : totalPages - 1;
+  const sliderValue = isWebtoon
+    ? Math.round((isDragging ? dragRatio : scrollRatio) * 1000)
+    : displayPage;
 
   return (
     <div className="w-full max-w-xl shrink-0 min-w-[280px] bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-3 shadow-2xl flex flex-col space-y-2 text-white select-none pointer-events-auto">
@@ -107,17 +136,16 @@ export const ScrubberBar: React.FC<ScrubberBarProps> = ({
         <input
           type="range"
           min={0}
-          max={totalPages - 1}
-          value={displayPage}
+          max={sliderMax}
+          value={sliderValue}
           onMouseDown={() => setIsDragging(true)}
           onTouchStart={() => setIsDragging(true)}
           onMouseUp={() => setIsDragging(false)}
           onTouchEnd={() => setIsDragging(false)}
-          onChange={(e) => handleSliderChange(parseInt(e.target.value, 10))}
+          onChange={(e) => handleSliderInput(parseFloat(e.target.value))}
           onInput={(e) => {
-            const val = parseInt((e.target as HTMLInputElement).value, 10);
-            setHoverPage(val);
-            handleSliderChange(val);
+            const val = parseFloat((e.target as HTMLInputElement).value);
+            handleSliderInput(val);
           }}
           onMouseLeave={() => {
             setHoverPage(null);

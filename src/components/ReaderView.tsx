@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import JSZip from 'jszip';
 import {
   ComicBook,
@@ -193,11 +193,49 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     (activeSpreadMode === 'spread' ||
       (activeSpreadMode === 'auto' && containerWidth >= settings.spreadThresholdPx));
 
+  const [webtoonScrollRatio, setWebtoonScrollRatio] = useState<number>(0);
+
+  // Sync scroll ratio state when container is scrolled
+  const handleWebtoonScroll = useCallback(() => {
+    if (!webtoonScrollRef.current) return;
+    const el = webtoonScrollRef.current;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    if (maxScroll > 0) {
+      const ratio = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
+      setWebtoonScrollRatio(ratio);
+    } else {
+      setWebtoonScrollRatio(0);
+    }
+  }, []);
+
+  // Handle smooth continuous scroll seeking from ScrubberBar
+  const handleScrollRatioChange = useCallback(
+    (ratio: number) => {
+      if (!webtoonScrollRef.current) return;
+      const el = webtoonScrollRef.current;
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll > 0) {
+        const targetScrollTop = ratio * maxScroll;
+        el.scrollTop = targetScrollTop;
+        setWebtoonScrollRatio(ratio);
+
+        if (currentComic && currentComic.totalPages > 0) {
+          const estIdx = Math.min(
+            currentComic.totalPages - 1,
+            Math.floor(ratio * currentComic.totalPages)
+          );
+          internalScrollTargetRef.current = estIdx;
+        }
+      }
+    },
+    [currentComic]
+  );
+
   // Scroll to active page in Webtoon continuous mode ONLY when currentPageIndex is changed externally
   useEffect(() => {
     if (isWebtoon && webtoonScrollRef.current) {
       if (internalScrollTargetRef.current === currentPageIndex) {
-        // Change originated from user scrolling manually; reset ref and preserve fluid scroll position
+        // Change originated from user scrolling or scrubbing manually; reset ref and preserve fluid scroll position
         internalScrollTargetRef.current = null;
         return;
       }
@@ -205,7 +243,10 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       const pageEl = document.getElementById(`webtoon-page-${currentPageIndex}`);
       if (pageEl && webtoonScrollRef.current) {
         const targetTop = pageEl.offsetTop - 8;
-        webtoonScrollRef.current.scrollTop = Math.max(0, targetTop);
+        webtoonScrollRef.current.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'smooth',
+        });
       }
     }
   }, [currentPageIndex, isWebtoon]);
@@ -455,6 +496,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
           /* Webtoon Vertical Continuous Scroll Mode (0 gap seamless panels) */
           <div
             ref={webtoonScrollRef}
+            onScroll={handleWebtoonScroll}
             className="w-full h-full overflow-y-auto overflow-x-hidden py-0 px-0 flex flex-col items-center bg-black/95 space-y-0 text-[0px] leading-[0] select-none transform-gpu"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -622,6 +664,9 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
             totalPages={currentComic.totalPages}
             onPageChange={onPageChange}
             readingDirection={settings.readingDirection}
+            isWebtoon={isWebtoon}
+            scrollRatio={webtoonScrollRatio}
+            onScrollRatioChange={handleScrollRatioChange}
           />
         </div>
       )}
