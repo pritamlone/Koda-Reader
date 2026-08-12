@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="#">
-  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/book-open.svg" alt="Koda Reader logo" title="Koda Reader logo" width="80"/>
+  <img src="./assets/logo.svg" alt="Koda Reader logo" title="Koda Reader logo" width="96"/>
 </a>
 
 # Koda Reader
@@ -13,7 +13,7 @@ A sleek, modern, and memory-efficient **CBZ / ZIP Comic & Manga Reader** built w
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white&labelColor=27303D)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&labelColor=27303D)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white&labelColor=27303D)](https://vitejs.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0877d2?labelColor=27303D)](/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-0877d2?labelColor=27303D)](./LICENSE)
 
 </div>
 
@@ -132,9 +132,21 @@ Koda Reader is a local media player designed to read user-provided comic archive
 
 ### License
 
-Copyright © 2026 Koda Reader Open Source Project.
+<pre>
+Copyright © 2026 Koda Reader Open Source Project
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the MIT License (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://opensource.org/licenses/MIT
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre>
 
 </div>
 

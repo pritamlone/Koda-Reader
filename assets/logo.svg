@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3d2a00" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="1" />
+    </radialGradient>
+    
+    <!-- Main Gold Gradients -->
+    <linearGradient id="gold1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF0A5" />
+      <stop offset="30%" stop-color="#FFC837" />
+      <stop offset="70%" stop-color="#C59312" />
+      <stop offset="100%" stop-color="#845D00" />
+    </linearGradient>
+
+    <linearGradient id="gold2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFE79A" />
+      <stop offset="50%" stop-color="#E1AC23" />
+      <stop offset="100%" stop-color="#916503" />
+    </linearGradient>
+
+    <linearGradient id="goldFold" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FFF8D6" />
+      <stop offset="40%" stop-color="#F2C12A" />
+      <stop offset="100%" stop-color="#5E4000" />
+    </linearGradient>
+
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.8" />
+    </filter>
+  </defs>
+
+  <!-- Dark Rounded Container -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGlow)" />
+  <rect width="508" height="508" x="2" y="2" rx="108" fill="none" stroke="#523e10" stroke-width="3" opacity="0.4" />
+
+  <!-- Outer Glow -->
+  <g filter="url(#goldGlow)" opacity="0.3">
+    <path d="M 140 80 L 220 80 L 220 432 L 140 432 Z" fill="#FFD700" />
+    <path d="M 220 250 L 370 80 L 440 80 L 220 330 Z" fill="#FFD700" />
+  </g>
+
+  <!-- Golden 'K' Structure with Folded Ribbon Effect -->
+  <g filter="url(#dropShadow)">
+    <!-- Vertical Fold Backing -->
+    <path d="M 148 90 L 220 90 L 220 422 L 148 422 C 132 422 120 410 120 394 L 120 118 C 120 102 132 90 148 90 Z" fill="url(#gold1)" />
+
+    <!-- Left Fold Overlap Shadow -->
+    <path d="M 120 310 C 120 370 148 422 220 422 L 220 230 C 170 230 120 260 120 310 Z" fill="url(#goldFold)" opacity="0.9" />
+
+    <!-- Top Diagonal Arm -->
+    <path d="M 200 270 L 350 100 C 360 88 376 88 388 98 L 420 124 C 430 134 430 150 418 162 L 260 330 Z" fill="url(#gold2)" />
+
+    <!-- Bottom Diagonal Arm -->
+    <path d="M 230 260 L 380 410 C 392 422 410 422 422 410 L 426 406 C 434 396 432 380 420 368 L 290 230 Z" fill="url(#goldFold)" />
+
+    <!-- Sharp Metallic Highlight Edge -->
+    <path d="M 148 90 L 220 90 L 220 100 L 148 100 Z" fill="#FFFFFF" opacity="0.6" />
+    <path d="M 200 270 L 350 100 L 360 108 L 210 280 Z" fill="#FFFFFF" opacity="0.4" />
+  </g>
+</svg>
