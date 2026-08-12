@@ -17,7 +17,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   join: (...args) => path.join(...args),
   readFileSync: (filePath) => {
     try {
-      return fs.readFileSync(filePath);
+      const buf = fs.readFileSync(filePath);
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     } catch (e) {
       console.error('Error in readFileSync:', e);
       return null;

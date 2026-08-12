@@ -195,20 +195,28 @@ export async function loadDirectoryItemBuffer(
   }
 
   if (node && item.filePath) {
-    const nodeBuffer = node.fs.readFileSync(item.filePath);
-    if (nodeBuffer) {
-      let arrayBuffer: ArrayBuffer;
-      if (nodeBuffer instanceof ArrayBuffer) {
-        arrayBuffer = nodeBuffer;
-      } else if (nodeBuffer.buffer) {
-        arrayBuffer = nodeBuffer.buffer.slice(
-          nodeBuffer.byteOffset || 0,
-          (nodeBuffer.byteOffset || 0) + (nodeBuffer.byteLength || nodeBuffer.length)
+    const rawData = node.fs.readFileSync(item.filePath);
+    if (rawData) {
+      let uint8: Uint8Array;
+      if (rawData instanceof Uint8Array) {
+        uint8 = rawData;
+      } else if (rawData.data && Array.isArray(rawData.data)) {
+        uint8 = new Uint8Array(rawData.data);
+      } else if (rawData.buffer) {
+        uint8 = new Uint8Array(
+          rawData.buffer,
+          rawData.byteOffset || 0,
+          rawData.byteLength || rawData.length
         );
       } else {
-        arrayBuffer = new Uint8Array(nodeBuffer).buffer;
+        uint8 = new Uint8Array(rawData);
       }
-      return { buffer: arrayBuffer, fileName: item.fileName };
+
+      const cleanArrayBuffer = uint8.buffer.slice(
+        uint8.byteOffset,
+        uint8.byteOffset + uint8.byteLength
+      );
+      return { buffer: cleanArrayBuffer, fileName: item.fileName };
     }
   }
 

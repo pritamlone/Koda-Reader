@@ -66,7 +66,6 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
   const isWebtoon = settings.layoutMode === 'webtoon';
 
-  const webtoonEndBannerRef = useRef<HTMLDivElement>(null);
   const [isWebtoonEndVisible, setIsWebtoonEndVisible] = useState<boolean>(false);
 
   // Floating Toast Overlay for New Chapter
@@ -82,8 +81,10 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     }
   }, [currentComic?.id, chapterNumber]);
 
+  const [webtoonEndEl, setWebtoonEndEl] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    if (!isWebtoon || !webtoonEndBannerRef.current) {
+    if (!isWebtoon || !webtoonEndEl || !webtoonScrollRef.current) {
       setIsWebtoonEndVisible(false);
       return;
     }
@@ -100,9 +101,9 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       }
     );
 
-    observer.observe(webtoonEndBannerRef.current);
+    observer.observe(webtoonEndEl);
     return () => observer.disconnect();
-  }, [isWebtoon, currentComic?.id]);
+  }, [isWebtoon, webtoonEndEl, currentComic?.id]);
 
   const isEndReached = currentComic
     ? isWebtoon
@@ -111,7 +112,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     : false;
 
   // Initialize LRU Image Cache
-  const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity));
+  const lruCacheRef = useRef<LRUImageCache>(new LRUImageCache(settings.lruCacheCapacity || 100));
   const [cachedUrls, setCachedUrls] = useState<Record<number, string>>({});
   const [diagnosticStats, setDiagnosticStats] = useState<DiagnosticStats>({
     cacheHitCount: 0,
@@ -276,86 +277,65 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     let isCancelled = false;
     const lru = lruCacheRef.current;
 
-    // Window set: current page -3 to +10 pages for Webtoon continuous scroll, ±3 for Paged
-    const windowIndices = new Set<number>();
-    if (isWebtoon) {
-      for (let delta = -3; delta <= 10; delta++) {
-        const idx = currentPageIndex + delta;
-        if (idx >= 0 && idx < currentComic.totalPages) {
-          windowIndices.add(idx);
-        }
-      }
-    } else {
-      for (let delta = -3; delta <= 3; delta++) {
-        const idx = currentPageIndex + delta;
-        if (idx >= 0 && idx < currentComic.totalPages) {
-          windowIndices.add(idx);
-        }
-      }
-    }
-
-    // Evict pages outside sliding window
-    lru.evictExcept(windowIndices);
-
     // Extract pages asynchronously with high-priority target page loading
     const loadWindowPages = async () => {
       const startTime = performance.now();
 
-      // Ensure current page is decoded FIRST for instant seeking response
-      const indicesArray = Array.from(windowIndices);
-      const orderedIndices = [
-        currentPageIndex,
-        ...indicesArray.filter((idx) => idx !== currentPageIndex),
-      ];
+      // Build ordered extraction list: Current page first, then rest of chapter in sequence
+      const orderedIndices: number[] = [];
+      if (isWebtoon) {
+        for (let i = currentPageIndex; i < currentComic.totalPages; i++) {
+          orderedIndices.push(i);
+        }
+        for (let i = 0; i < currentPageIndex; i++) {
+          orderedIndices.push(i);
+        }
+      } else {
+        const set = new Set<number>();
+        for (let delta = -5; delta <= 5; delta++) {
+          const idx = currentPageIndex + delta;
+          if (idx >= 0 && idx < currentComic.totalPages) set.add(idx);
+        }
+        orderedIndices.push(currentPageIndex);
+        set.delete(currentPageIndex);
+        orderedIndices.push(...Array.from(set));
+      }
 
       for (const idx of orderedIndices) {
         if (isCancelled) break;
 
-        if (!lru.has(idx)) {
+        let blobUrl = lru.getBlobUrl(idx);
+        if (!blobUrl && !lru.has(idx)) {
           try {
             const entry = currentComic.entries[idx];
             if (entry) {
               const blob = await CBZParser.extractPageBlob(zipInstance, entry.entryPath);
-              if (!isCancelled) {
-                lru.put(idx, blob);
-
-                // Publish target page URL immediately for zero-lag rendering
-                if (idx === currentPageIndex) {
-                  const targetUrl = lru.getBlobUrl(idx);
-                  if (targetUrl) {
-                    setCachedUrls((prev) => ({
-                      ...prev,
-                      [idx]: targetUrl,
-                    }));
-                  }
-                }
-              }
+              lru.put(idx, blob);
+              blobUrl = lru.getBlobUrl(idx);
             }
           } catch (err) {
             console.error(`Failed to extract page ${idx}:`, err);
           }
         }
-      }
 
-      if (!isCancelled) {
-        // Collect URLs for active rendered state
-        const updatedUrls: Record<number, string> = {};
-        for (const idx of Array.from(windowIndices)) {
-          const url = lru.getBlobUrl(idx);
-          if (url) updatedUrls[idx] = url;
+        if (blobUrl) {
+          const validUrl = blobUrl;
+          setCachedUrls((prev) => {
+            if (prev[idx] === validUrl) return prev;
+            return { ...prev, [idx]: validUrl };
+          });
         }
-        setCachedUrls(updatedUrls);
-
-        const stats = lru.getStats();
-        setDiagnosticStats({
-          cacheHitCount: stats.hitCount,
-          cacheMissCount: stats.missCount,
-          cachedPageIndices: stats.cachedPageIndices,
-          estimatedMemoryMb: stats.estimatedMemoryMb,
-          lastExtractionTimeMs: +(performance.now() - startTime).toFixed(1),
-          activeBlobUrlsCount: Object.keys(updatedUrls).length,
-        });
       }
+
+      const stats = lru.getStats();
+      setDiagnosticStats({
+        cacheHitCount: stats.hitCount,
+        cacheMissCount: stats.missCount,
+        cachedPageIndices: stats.cachedPageIndices,
+        estimatedMemoryMb: stats.estimatedMemoryMb,
+        lastExtractionTimeMs: +(performance.now() - startTime).toFixed(1),
+        activeBlobUrlsCount: stats.size,
+      });
     };
 
     loadWindowPages();
@@ -520,7 +500,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               ))}
 
               {/* End of Webtoon Stream Continuous Reading Banner */}
-              <div ref={webtoonEndBannerRef} className="w-full text-base leading-normal text-slate-200 py-8 px-4">
+              <div ref={setWebtoonEndEl} className="w-full text-base leading-normal text-slate-200 py-8 px-4">
                 <div className="w-full max-w-lg mx-auto bg-slate-900/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl text-center space-y-4 backdrop-blur-md">
                   <div className="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
                     <CheckCircle2 size={16} />
@@ -531,8 +511,18 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                     <div className="space-y-3 pt-1">
                       <div className="flex items-center justify-center space-x-2 text-emerald-300 font-semibold text-xs animate-pulse">
                         <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin shrink-0" />
-                        <span>Loading next chapter: <strong className="text-white">{nextComicTitle}</strong></span>
+                        <span>Next Chapter: <strong className="text-white">{nextComicTitle}</strong></span>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onLoadNextComic) onLoadNextComic();
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg transition-all flex items-center justify-center space-x-2 mx-auto cursor-pointer"
+                      >
+                        <span>Read Next Chapter Now</span>
+                        <ChevronRight size={16} />
+                      </button>
                     </div>
                   ) : (
                     <p className="text-slate-400 text-xs py-2">

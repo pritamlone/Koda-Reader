@@ -16,7 +16,7 @@ export class LRUImageCache {
   private hitCount = 0;
   private missCount = 0;
 
-  constructor(capacity = 7) {
+  constructor(capacity = 100) {
     this.capacity = Math.max(1, capacity);
   }
 
