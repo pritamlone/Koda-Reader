@@ -52,7 +52,7 @@ Execute each command one by one in your terminal:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/koda-reader.git
+git clone https://github.com/pritamlone/Koda-Reader.git
 ```
 
 2. Navigate into the project directory:
