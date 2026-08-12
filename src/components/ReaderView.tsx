@@ -202,8 +202,9 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       }
 
       const pageEl = document.getElementById(`webtoon-page-${currentPageIndex}`);
-      if (pageEl) {
-        pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (pageEl && webtoonScrollRef.current) {
+        const targetTop = pageEl.offsetTop - 8;
+        webtoonScrollRef.current.scrollTop = Math.max(0, targetTop);
       }
     }
   }, [currentPageIndex, isWebtoon]);
@@ -296,11 +297,18 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     // Evict pages outside sliding window
     lru.evictExcept(windowIndices);
 
-    // Extract pages asynchronously
+    // Extract pages asynchronously with high-priority target page loading
     const loadWindowPages = async () => {
       const startTime = performance.now();
 
-      for (const idx of Array.from(windowIndices)) {
+      // Ensure current page is decoded FIRST for instant seeking response
+      const indicesArray = Array.from(windowIndices);
+      const orderedIndices = [
+        currentPageIndex,
+        ...indicesArray.filter((idx) => idx !== currentPageIndex),
+      ];
+
+      for (const idx of orderedIndices) {
         if (isCancelled) break;
 
         if (!lru.has(idx)) {
@@ -310,6 +318,17 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               const blob = await CBZParser.extractPageBlob(zipInstance, entry.entryPath);
               if (!isCancelled) {
                 lru.put(idx, blob);
+
+                // Publish target page URL immediately for zero-lag rendering
+                if (idx === currentPageIndex) {
+                  const targetUrl = lru.getBlobUrl(idx);
+                  if (targetUrl) {
+                    setCachedUrls((prev) => ({
+                      ...prev,
+                      [idx]: targetUrl,
+                    }));
+                  }
+                }
               }
             }
           } catch (err) {

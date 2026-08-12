@@ -178,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-3 text-center border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs leading-relaxed space-y-2">
               <Sparkles size={16} className="mx-auto text-slate-600" />
               <p>
-                Open a CBZ file or folder. Koda Reader automatically indexes all chapters in natural Mihon order.
+                Open a CBZ file or folder. Koda Reader automatically indexes all chapters in natural chapter order.
               </p>
             </div>
           ) : directoryItems.length === 1 ? (
@@ -323,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <HardDrive size={12} />
           <span>Koda Engine v1.0.0</span>
         </span>
-        <span className="text-emerald-400 font-mono">Mihon Index</span>
+        <span className="text-emerald-400 font-mono">Chapter Index</span>
       </div>
     </aside>
   );

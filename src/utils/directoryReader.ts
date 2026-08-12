@@ -12,14 +12,29 @@ export interface DirectoryComicItem {
 
 // Safely retrieve Node fs and path in Electron renderer process
 export function getNodeModules() {
-  try {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      const fs = (window as any).require('fs');
-      const path = (window as any).require('path');
-      return { fs, path };
+  if (typeof window !== 'undefined') {
+    if ((window as any).electronAPI) {
+      const api = (window as any).electronAPI;
+      return {
+        fs: {
+          readdirSync: (dirPath: string) => api.readdirSync(dirPath),
+          readFileSync: (filePath: string) => api.readFileSync(filePath),
+        },
+        path: {
+          dirname: (p: string) => api.dirname(p),
+          join: (...args: string[]) => api.join(...args),
+        },
+      };
     }
-  } catch {
-    // Non-electron web environment
+    try {
+      if ((window as any).require) {
+        const fs = (window as any).require('fs');
+        const path = (window as any).require('path');
+        return { fs, path };
+      }
+    } catch {
+      // Non-electron web environment
+    }
   }
   return null;
 }
@@ -181,11 +196,20 @@ export async function loadDirectoryItemBuffer(
 
   if (node && item.filePath) {
     const nodeBuffer = node.fs.readFileSync(item.filePath);
-    const arrayBuffer = nodeBuffer.buffer.slice(
-      nodeBuffer.byteOffset,
-      nodeBuffer.byteOffset + nodeBuffer.byteLength
-    );
-    return { buffer: arrayBuffer, fileName: item.fileName };
+    if (nodeBuffer) {
+      let arrayBuffer: ArrayBuffer;
+      if (nodeBuffer instanceof ArrayBuffer) {
+        arrayBuffer = nodeBuffer;
+      } else if (nodeBuffer.buffer) {
+        arrayBuffer = nodeBuffer.buffer.slice(
+          nodeBuffer.byteOffset || 0,
+          (nodeBuffer.byteOffset || 0) + (nodeBuffer.byteLength || nodeBuffer.length)
+        );
+      } else {
+        arrayBuffer = new Uint8Array(nodeBuffer).buffer;
+      }
+      return { buffer: arrayBuffer, fileName: item.fileName };
+    }
   }
 
   throw new Error(`Unable to read file contents for "${item.fileName}"`);
