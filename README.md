@@ -32,9 +32,14 @@ A sleek, high-performance **CBZ / ZIP Comic & Manga Reader** crafted with **Reac
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/koda-reader.git
-cd koda-reader
+git clone https://github.com/pritamlone/Koda-Reader.git
+```
 
+```bash
+cd koda-reader
+```
+
+```bash
 # Install dependencies
 npm install
 ```
@@ -44,7 +49,9 @@ npm install
 ```bash
 # Start Vite development server
 npm run dev
+```
 
+```bash
 # Launch Electron app in dev mode
 npm run electron:dev
 ```
